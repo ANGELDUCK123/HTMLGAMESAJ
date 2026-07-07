@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundial 2026 - Álbum Digital Panini V2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,900&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* ================= VARIABLES OFICIALES 2026 ================= */
+        :root {
+            --fifa-magenta: #E6005C;
+            --fifa-purple: #3A0033;
+            --fifa-dark-purple: #24001F;
+            --fifa-neon-green: #00F076;
+            --fifa-cyan: #00D4FF;
+            --gold: #D4AF37;
+            --gold-light: #FDF3CD;
+            --white: #FFFFFF;
+            --gray-light: #F0F0F0;
+            --gray-dark: #222222;
+            --bg-body: #110010;
+            --font-main: 'Poppins', sans-serif;
+            --font-title: 'Montserrat', sans-serif;
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+            --transition: all 0.3s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+        body {
+            font-family: var(--font-main);
+            background: radial-gradient(circle at 50% 0%, var(--fifa-purple) 0%, var(--fifa-dark-purple) 100%);
+            background-attachment: fixed;
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ================= CUSTOM MESSAGE BOX ================= */
+        #message-box {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: var(--fifa-neon-green); color: var(--fifa-dark-purple);
+            padding: 15px 30px; border-radius: 30px; font-weight: 800; z-index: 10000;
+            box-shadow: var(--shadow-lg); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center;
+        }
+        #message-box.show { transform: translateX(-50%) translateY(0); }
+        #message-box.error { background: #FF3B30; color: white; }
+
+        /* ================= HEADER ================= */
+        header {
+            background: rgba(36, 0, 31, 0.9); backdrop-filter: blur(10px); color: var(--white);
+            padding: 15px 5%; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--fifa-magenta); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; gap: 10px;
+        }
+
+        .logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-title); font-weight: 900; font-size: 1.5rem; letter-spacing: -1px; }
+        .logo span { color: var(--fifa-neon-green); }
+
+        .global-stats { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .progress-container { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+        .progress-bar-bg { width: 100px; height: 12px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--fifa-magenta), var(--fifa-cyan)); width: 0%; transition: width 0.5s ease; }
+
+        .stat-badge {
+            background: var(--fifa-neon-green); color: var(--fifa-dark-purple);
+            padding: 5px 15px; border-radius: 20px; font-weight: 800; display: flex; align-items: center; gap: 5px;
+        }
+        .stat-badge.coins { background: var(--gold); color: var(--fifa-dark-purple); }
+
+        /* ================= NAVEGACIÓN ================= */
+        nav { background: var(--fifa-magenta); display: flex; justify-content: center; flex-wrap: wrap; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .nav-btn {
+            padding: 15px 20px; border: none; background: none; font-family: inherit; font-weight: 600; font-size: 0.9rem;
+            color: rgba(255,255,255,0.7); cursor: pointer; position: relative; transition: var(--transition); text-transform: uppercase;
+        }
+        .nav-btn:hover, .nav-btn.active { color: var(--white); font-weight: 800; }
+        .nav-btn.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: var(--fifa-neon-green); }
+
+        main { flex: 1; padding: 30px 5%; display: flex; justify-content: center; align-items: flex-start; position: relative; }
+        .view { display: none; width: 100%; max-width: 1200px; animation: fadeIn 0.4s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= VISTA 1: ÁLBUM ================= */
+        .album-container { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
+        .album-controls { display: flex; justify-content: space-between; width: 100%; max-width: 1000px; align-items: center; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 30px; }
+        .btn-nav-album { background: var(--fifa-magenta); color: var(--white); border: none; padding: 10px 20px; border-radius: 25px; font-weight: 800; cursor: pointer; transition: var(--transition); text-transform: uppercase; font-size: 0.9rem; }
+        .btn-nav-album:hover:not(:disabled) { background: var(--fifa-cyan); color: var(--fifa-dark-purple); }
+        .btn-nav-album:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
+
+        .book { display: flex; background: transparent; width: 100%; max-width: 1100px; position: relative; box-shadow: var(--shadow-lg); border-radius: 10px; }
+        .page { width: 50%; background: var(--white); min-height: 600px; position: relative; padding: 30px; display: flex; flex-direction: column; color: var(--gray-dark); overflow: hidden; }
+        .page::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(230,0,92,0.05)"/></svg>'); background-size: 150px 150px; z-index: 0; pointer-events: none; }
+        .page-left { border-radius: 10px 0 0 10px; border-right: 1px solid #ccc; box-shadow: inset -15px 0 15px -10px rgba(0,0,0,0.2); }
+        .page-right { border-radius: 0 10px 10px 0; box-shadow: inset 15px 0 15px -10px rgba(0,0,0,0.2); }
+
+        .page-content { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+        .we-are-header { font-family: var(--font-title); font-weight: 900; font-size: 2.2rem; line-height: 1; text-transform: uppercase; color: var(--fifa-magenta); margin-bottom: 20px; display: flex; align-items: center; gap: 15px; }
+        .we-are-header span { color: var(--fifa-purple); display: block; font-size: 2.5rem; }
+
+        .grid-left, .grid-right { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; flex: 1; }
+        .slot-container { display: flex; justify-content: center; align-items: center; }
+        #slot-0 { grid-column: 1; grid-row: 1 / span 2; }
+        #slot-1 { grid-column: 2; grid-row: 1; }
+        #slot-2 { grid-column: 3; grid-row: 1; }
+        #slot-3 { grid-column: 2; grid-row: 2; }
+        #slot-4 { grid-column: 3; grid-row: 2; }
+
+        .group-box { grid-column: 1 / span 2; background: var(--fifa-purple); border-radius: 10px; padding: 15px; color: white; display: flex; flex-direction: column; justify-content: center; }
+        .group-box h3 { font-family: var(--font-title); font-weight: 900; font-size: 1.5rem; margin-bottom: 10px; color: var(--fifa-neon-green); }
+        .group-flags { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .flag-item { background: white; color: var(--fifa-dark-purple); font-weight: 800; padding: 5px 10px; border-radius: 5px; display: flex; align-items: center; gap: 10px; font-size: 0.85rem; border-left: 5px solid var(--fifa-magenta); }
+
+        /* ================= CROMOS (STICKERS) ================= */
+        .slot { width: 100%; max-width: 140px; aspect-ratio: 0.72 / 1; background: #f8f8f8; border: 2px dashed #bbb; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; font-size: 1.2rem; font-weight: 800; color: #ccc; font-family: var(--font-title); }
+        .slot-country { font-size: 0.9rem; color: #999; margin-bottom: 5px; }
+
+        .sticker-card {
+            width: 100%; height: 100%; background: linear-gradient(to bottom, #FFFFFF 60%, var(--fifa-neon-green) 100%);
+            border-radius: 6px; border: 2px solid var(--gray-dark); display: flex; flex-direction: column;
+            box-shadow: var(--shadow-md); position: relative; animation: pasteSticker 0.4s forwards; overflow: hidden; font-family: var(--font-main);
+        }
+        @keyframes pasteSticker { 0% { transform: scale(1.3) rotate(5deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+        
+        .sticker-card .id-badge { background: var(--gray-dark); color: var(--white); font-size: 0.7rem; padding: 3px 6px; position: absolute; top: 5px; right: 5px; border-radius: 4px; font-weight: 800; }
+        .sticker-card .art { flex: 1; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; color: rgba(0,0,0,0.1); }
+        .sticker-card .info { background: var(--fifa-dark-purple); color: var(--white); text-align: center; padding: 6px; font-size: 0.7rem; border-top: 2px solid var(--fifa-neon-green); }
+        .sticker-card .info strong { display: block; text-transform: uppercase; font-size: 0.8rem; }
+
+        /* Cartas Valiosas / Escudos */
+        .sticker-card.premium { border: 3px solid var(--gold); background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, #B8860B 100%); }
+        .sticker-card.premium .info { background: var(--gold); color: var(--fifa-dark-purple); border-top: none; }
+        .sticker-card.premium .art { color: rgba(255,255,255,0.4); text-shadow: 0 0 10px rgba(255,255,255,0.8); }
+
+        .btn-add-sticker { background: var(--fifa-magenta); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.5rem; font-weight: bold; cursor: pointer; box-shadow: var(--shadow-md); transition: var(--transition); position: absolute; z-index: 10; }
+        .btn-add-sticker:hover { transform: scale(1.15); background: var(--fifa-neon-green); color: var(--fifa-dark-purple); }
+        .slot.glow-gold { border-color: var(--fifa-magenta); background: rgba(230,0,92,0.1); }
+
+        /* ================= ABRIR SOBRES ================= */
+        .packs-container { text-align: center; background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; backdrop-filter: blur(10px); width: 100%; }
+        .pack-graphic { width: 220px; height: 300px; background: linear-gradient(135deg, var(--fifa-magenta) 0%, #8A0038 100%); border: 5px solid var(--white); border-radius: 15px; margin: 30px auto; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--white); box-shadow: 0 0 30px rgba(230,0,92,0.5); cursor: pointer; transition: transform 0.2s, box-shadow 0.3s; position: relative; overflow: hidden; }
+        .pack-graphic::after { content: 'PANINI'; position: absolute; top: 10px; font-weight: 900; letter-spacing: 3px; font-size: 0.8rem; }
+        .pack-graphic h3 { font-family: var(--font-title); font-size: 2.5rem; font-weight: 900; }
+        .pack-graphic:hover { transform: scale(1.05); }
+        .pack-graphic.opening { animation: shakePack 0.5s ease-in-out, fadeOutUp 0.5s 0.5s forwards; pointer-events: none; }
+        .pack-graphic.deluxe { background: linear-gradient(135deg, #111111 0%, #333333 100%); border: 5px solid var(--gold); box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); color: var(--gold); }
+        .pack-graphic.deluxe::after { color: var(--gold); }
+        .pack-graphic.deluxe h3 { color: var(--gold); }
+
+        /* Estilos Sobres Promocionales */
+        .pack-graphic.cocacola { background: linear-gradient(135deg, #F40009 0%, #8B0000 100%); border-color: #FFF; box-shadow: 0 0 40px rgba(244, 0, 9, 0.6); }
+        .pack-graphic.cocacola::after { content: 'COCA-COLA'; color: white; }
+        .pack-graphic.mcdonalds { background: linear-gradient(135deg, #DA291C 0%, #8A0B05 100%); border-color: #FFC72C; box-shadow: 0 0 40px rgba(255, 199, 44, 0.6); color: #FFC72C;}
+        .pack-graphic.mcdonalds::after { content: "McDONALD'S"; color: #FFC72C; }
+        .pack-graphic.mcdonalds h3 { color: #FFC72C; }
+
+        .pack-selector-row { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .pack-type-btn { background: var(--gray-dark); color: white; border: 2px solid #555; padding: 10px; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .pack-type-btn:hover { background: var(--fifa-magenta); border-color: var(--fifa-magenta); }
+
+        /* Estilos Hoja de Logros */
+        .logros-page { background: linear-gradient(to right, #001A88 10%, #E6005C 40%, #E6005C 60%, #00F076 90%); padding: 20px; border-radius: 10px; height: 100%; display: flex; flex-direction: column; color: white; }
+        .logros-header { background: #E6005C; border-radius: 30px; padding: 15px 30px; display: inline-block; margin-bottom: 20px; border: 3px solid #222;}
+        .logros-header h2 { font-family: var(--font-title); font-weight: 900; font-size: 2rem; margin: 0; text-transform: uppercase; }
+        .logros-header p { font-size: 0.8rem; font-weight: bold; }
+        .logros-grid-container { display: flex; gap: 20px; flex: 1; }
+        .logros-col { flex: 1; background: #222; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 15px; border: 2px solid #444;}
+        .logro-section h3 { font-family: var(--font-title); font-size: 1rem; text-align: center; margin-bottom: 10px; text-transform: uppercase; }
+        .logro-badges { display: flex; justify-content: center; gap: 15px; }
+        .logro-badge-slot { width: 60px; height: 60px; background: #111; border-radius: 50%; border: 2px solid #333; position: relative; display: flex; justify-content: center; align-items: center; }
+        .logro-badge-label { position: absolute; bottom: -15px; background: #555; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px; text-align: center; width: 80px; }
+        .logro-badge-slot.unlocked { background: var(--gold); border-color: var(--white); color: #000; font-size: 1.5rem; }
+
+        /* Estilos Venta */
+        .btn-sell { background: #FF3B30; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.8rem; margin-top: 10px; width: 100%;}
+        .btn-sell:hover { background: #CC2E26; }
+
+        @keyframes fadeOutUp { to { opacity: 0; transform: translateY(-100px) scale(0.8); } }
+
+        .reveal-area { display: none; margin-top: 30px; width: 100%; }
+        .reveal-grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .revealed-sticker { width: 160px; height: 222px; position: relative; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: scale(0.5); }
+        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+        .timer-display-box { font-size: 1.1rem; color: var(--fifa-cyan); margin-top: 15px; font-weight: 600; }
+
+        /* ================= VISTAS INVENTARIO & INTERCAMBIO ================= */
+        .inventory-section { background: var(--white); color: var(--gray-dark); padding: 30px; border-radius: 10px; box-shadow: var(--shadow-lg); width: 100%; margin-bottom: 20px;}
+        .inventory-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--gray-light); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .inventory-header h2 { font-family: var(--font-title); color: var(--fifa-purple); font-weight: 900; }
+        .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; min-height: 200px; }
+        .inventory-item { aspect-ratio: 0.72 / 1; position: relative; cursor: pointer; transition: var(--transition); }
+        .inventory-item:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+        .selected-for-trade { border: 4px solid var(--fifa-neon-green); border-radius: 8px; transform: scale(1.05); }
+        .empty-state { grid-column: 1 / -1; text-align: center; color: #888; font-style: italic; padding: 50px 0; font-size: 1.1rem; }
+
+        .btn-action { background: var(--fifa-magenta); color: var(--white); border: none; padding: 12px 30px; font-size: 1rem; font-weight: 800; border-radius: 30px; cursor: pointer; text-transform: uppercase; box-shadow: var(--shadow-md); transition: var(--transition); }
+        .btn-action:hover:not(:disabled) { background: var(--fifa-neon-green); color: var(--fifa-dark-purple); }
+        .btn-action:disabled { background: #555; color: #999; cursor: not-allowed; }
+        .btn-trade-all { background: var(--fifa-cyan); color: var(--fifa-dark-purple); }
+
+        .trade-controls { background: var(--fifa-purple); color: white; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+
+        .special-items-trade { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
+        .special-trade-btn { background: var(--gold); color: var(--fifa-dark-purple); border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .special-trade-btn:hover { transform: scale(1.05); background: var(--gold-light); }
+
+        /* ================= TIENDA (SHOP) ================= */
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
+        .shop-item { background: var(--white); border-radius: 15px; padding: 20px; text-align: center; color: var(--gray-dark); box-shadow: var(--shadow-md); border: 2px solid transparent; transition: var(--transition); display: flex; flex-direction: column; justify-content: space-between;}
+        .shop-item:hover { transform: translateY(-5px); border-color: var(--gold); }
+        .shop-icon { font-size: 4rem; margin-bottom: 10px; }
+        .shop-title { font-family: var(--font-title); font-weight: 900; font-size: 1.2rem; color: var(--fifa-purple); margin-bottom: 10px; }
+        .shop-price { color: var(--gold); font-weight: 800; font-size: 1.3rem; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 5px;}
+        
+        /* ================= TROFEOS ================= */
+        .trophies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+        .trophy-item { background: linear-gradient(135deg, var(--fifa-purple) 0%, var(--fifa-dark-purple) 100%); border-radius: 15px; padding: 30px 20px; text-align: center; color: var(--gold); box-shadow: 0 0 20px rgba(212,175,55,0.2); border: 2px solid var(--gold); }
+        .trophy-icon { font-size: 5rem; margin-bottom: 15px; filter: drop-shadow(0 0 10px rgba(255,255,255,0.5)); }
+        .trophy-title { font-family: var(--font-title); font-weight: 900; font-size: 1.1rem; color: white; margin-bottom: 5px; }
+        .trophy-count { font-size: 1.5rem; font-weight: bold; color: var(--fifa-neon-green); }
+
+        .world-cup-trophy { grid-column: 1 / -1; background: linear-gradient(135deg, var(--gold) 0%, #B8860B 100%); color: var(--fifa-dark-purple); text-align: center; padding: 40px; border-radius: 20px; animation: popIn 1s ease; box-shadow: 0 0 50px rgba(212,175,55,0.8); }
+        .world-cup-trophy .trophy-icon { font-size: 8rem; }
+        .world-cup-trophy .trophy-title { font-size: 2rem; color: var(--fifa-dark-purple); }
+
+        /* ================= CÓDIGOS ================= */
+        .codes-container { background: var(--white); color: var(--gray-dark); padding: 40px; border-radius: 10px; box-shadow: var(--shadow-lg); max-width: 600px; margin: 0 auto; text-align: center; }
+        .codes-container h2 { font-family: var(--font-title); color: var(--fifa-purple); font-weight: 900; margin-bottom: 10px;}
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .input-group input { flex: 1; min-width: 200px; padding: 15px 20px; font-size: 1.2rem; border: 2px solid #ccc; border-radius: 30px; outline: none; text-transform: uppercase; font-family: inherit; font-weight: bold; }
+        .input-group input:focus { border-color: var(--fifa-magenta); }
+
+        /* ================= BOTÓN DE AJUSTES ================= */
+        .settings-btn { position: fixed; bottom: 20px; right: 20px; background: var(--fifa-purple); border: 2px solid var(--fifa-neon-green); color: var(--fifa-neon-green); border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; z-index: 1000; box-shadow: var(--shadow-md); transition: var(--transition); }
+        .settings-btn:hover { transform: rotate(90deg) scale(1.1); background: var(--fifa-neon-green); color: var(--fifa-purple); }
+
+        /* ================= MODALES ================= */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 9990; display: none; justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--white); color: var(--gray-dark); padding: 30px; border-radius: 15px; max-width: 600px; width: 100%; position: relative; box-shadow: var(--shadow-lg); animation: popIn 0.3s ease-out; margin: auto; }
+        .modal-content h2 { color: var(--fifa-purple); font-family: var(--font-title); font-weight: 900; margin-bottom: 20px; }
+        
+        .btn-modal { background: var(--gray-light); border: 2px solid #ddd; padding: 15px; width: 100%; font-size: 1rem; font-weight: 800; border-radius: 10px; margin-bottom: 15px; cursor: pointer; transition: var(--transition); }
+        .btn-modal:hover { background: var(--fifa-cyan); border-color: var(--fifa-cyan); color: var(--fifa-dark-purple); }
+        .btn-close-modal { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888; z-index: 10;}
+        .btn-back-modal { background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--fifa-magenta); font-weight: bold; display: flex; align-items: center; margin-bottom: 15px; }
+
+        .codes-list { background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto; text-align: left; }
+        .codes-list p { margin-bottom: 5px; font-family: monospace; font-size: 1.1rem; color: var(--fifa-magenta); font-weight: bold; }
+
+        .command-section { background: #f4f4f4; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+        .command-section select, .command-section input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: inherit; }
+        .custom-cards-list { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+        .custom-card-badge { background: var(--fifa-purple); color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; }
+
+        .country-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 10px; }
+        .country-btn { background: var(--white); border: 2px solid #ddd; border-radius: 8px; padding: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .country-btn:hover { border-color: var(--fifa-magenta); background: rgba(230,0,92,0.1); }
+        
+        .dev-player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto; }
+        .dev-player-item { background: var(--gray-light); padding: 10px; border-radius: 5px; text-align: center; font-size: 0.8rem; font-weight: bold; cursor: pointer; border: 2px solid transparent; }
+        .dev-player-item:hover { border-color: var(--fifa-neon-green); }
+        .dev-player-item.premium { background: var(--gold-light); border-color: var(--gold); }
+
+        @media (max-width: 900px) {
+            .book { flex-direction: column; }
+            .page { width: 100%; min-height: auto; padding: 20px; border-radius: 10px !important; }
+            .page-right { display: none; }
+            nav { padding: 5px; gap: 5px; }
+            .nav-btn { padding: 10px; font-size: 0.8rem; }
+            header { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="message-box">Mensaje del sistema</div>
+
+    <header>
+        <div class="logo">
+            <span>⚽</span> FIFA WORLD CUP <span>2026</span>
+        </div>
+        <div class="global-stats">
+            <div class="progress-container">
+                <span>Progreso:</span>
+                <div class="progress-bar-bg"><div class="progress-fill" id="progress-fill"></div></div>
+                <span id="progress-text" style="font-weight: 800; color: var(--fifa-neon-green);">0%</span>
+            </div>
+            <div class="stat-badge coins" title="Monedas (Balones)">
+                🪙 <span id="header-coin-count">0</span>
+            </div>
+            <div class="stat-badge" title="Sobres Disponibles">
+                📦 x <span id="header-pack-count">5</span>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <button class="nav-btn active" data-target="album-view">Mi Álbum</button>
+        <button class="nav-btn" data-target="packs-view">Abrir Sobres</button>
+        <button class="nav-btn" data-target="paste-view">Mis Cromos (<span id="nav-pila-count">0</span>)</button>
+        <button class="nav-btn" data-target="trade-view">Intercambio (<span id="nav-trade-count">0</span>)</button>
+        <button class="nav-btn" data-target="shop-view">Tienda</button>
+        <button class="nav-btn" data-target="trophies-view">Trofeos</button>
+        <button class="nav-btn" data-target="codes-view">Códigos</button>
+    </nav>
+
+    <main>
+        <!-- VISTA 1: ÁLBUM -->
+        <section id="album-view" class="view active">
+            <div class="album-container">
+                <div class="album-controls">
+                    <button class="btn-nav-album" id="btn-prev">← Anterior</button>
+                    <span id="page-indicator" style="font-weight: 800; font-size: 1.2rem; color: white; text-transform: uppercase;">MÉXICO</span>
+                    <button class="btn-nav-album" id="btn-next">Siguiente →</button>
+                </div>
+                <p style="font-size: 0.8rem; color: #ccc;">Usa las flechas del teclado ⬅️ ➡️ para navegar más rápido.</p>
+                <div class="book" id="book-container">
+                    <div class="page page-left" id="page-left"></div>
+                    <div class="page page-right" id="page-right"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 2: ABRIR SOBRES -->
+        <section id="packs-view" class="view">
+            <div class="packs-container">
+                <h2 style="font-family: var(--font-title); font-weight: 900; font-size: 2rem; margin-bottom: 10px;">¡ABRE TUS SOBRES!</h2>
+                
+                <div class="pack-selector-row">
+                    <button class="pack-type-btn" onclick="app.changePackType(-1)">◀</button>
+                    <div style="text-align: center; min-width: 200px;">
+                        <div id="active-pack-name" style="font-family: var(--font-title); font-weight: 900; font-size: 1.2rem; color: var(--fifa-neon-green);">Sobre Normal</div>
+                        <div style="font-size: 0.9rem;">Disponibles: <strong id="active-pack-count" style="color: white; font-size: 1.2rem;">5</strong></div>
+                    </div>
+                    <button class="pack-type-btn" onclick="app.changePackType(1)">▶</button>
+                </div>
+                
+                <div class="timer-display-box">🕒 3 sobres gratis en: <span id="timer-display">03:00</span></div>
+                
+                <div class="pack-graphic" id="pack-graphic" onclick="app.openPack()">
+                    <h3 id="pack-title">2026</h3>
+                    <div id="pack-icon" style="font-size: 3rem; margin-top: 10px;">🌟</div>
+                    <div id="pack-subtitle" style="margin-top: auto; margin-bottom: 20px; font-weight: 800; font-size: 1.2rem;">5 CROMOS</div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn-action" id="btn-open-pack" onclick="app.openPack()">Rasgar Sobre</button>
+                    <button class="btn-action" style="background: var(--gold); color: var(--fifa-dark-purple);" onclick="app.switchView('shop-view')">Ir a la Tienda</button>
+                </div>
+
+                <div class="reveal-area" id="reveal-area">
+                    <h3 style="font-family: var(--font-title); font-size: 1.8rem; margin-bottom: 20px; color: var(--fifa-neon-green);">¡Nuevos Cromos Obtenidos!</h3>
+                    <div class="reveal-grid" id="reveal-grid"></div>
+                    <button class="btn-action" onclick="app.saveOpenedPack()">Añadir a mi colección</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 3: MIS CROMOS -->
+        <section id="paste-view" class="view">
+            <div class="inventory-section">
+                <div class="inventory-header">
+                    <h2>MIS CROMOS</h2>
+                    <p>Haz clic en un cromo para pegarlo en el álbum. ¡Pegar cartas valiosas da más monedas!</p>
+                </div>
+                <div class="inventory-grid" id="pila-grid"></div>
+            </div>
+        </section>
+
+        <!-- VISTA 4: INTERCAMBIO -->
+        <section id="trade-view" class="view">
+            <div class="inventory-section">
+                <div class="inventory-header">
+                    <h2>MERCADO DE INTERCAMBIO</h2>
+                    <p>Las cartas valiosas 🌟 se intercambian por cartas valiosas.</p>
+                </div>
+                
+                <div class="trade-controls" id="trade-controls" style="margin-bottom: 20px; margin-top: 0;">
+                    <div><strong>Cromo a ofertar:</strong> <span id="trade-selected-name" style="color: var(--fifa-neon-green); font-weight: bold;">Ninguno</span></div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn-action" id="btn-sell-card" onclick="app.sellSelectedCard()" style="background: #FF3B30;" disabled>Vender por Monedas</button>
+                        <button class="btn-action" id="btn-execute-trade" onclick="app.executeTrade()" disabled>Intercambiar</button>
+                        <button class="btn-action btn-trade-all" id="btn-trade-all" onclick="app.executeTradeAll()">Intercambiar Todas</button>
+                    </div>
+                </div>
+
+                <div class="inventory-grid" id="trade-grid"></div>
+
+                <!-- Sección de objetos de oro -->
+                <div id="trade-special-container" style="display: none; margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px;">
+                    <h3 style="color: var(--fifa-purple); font-family: var(--font-title); font-weight: 900; margin-bottom: 10px;">Intercambiar Objetos Especiales</h3>
+                    <p style="font-size: 0.9rem; margin-bottom: 15px;">Cambia tus objetos de oro o camisetas por cartas exclusivas.</p>
+                    <div class="special-items-trade" id="special-trade-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 5: TIENDA -->
+        <section id="shop-view" class="view">
+            <div class="inventory-section">
+                <div class="inventory-header" style="background: var(--gold); padding: 20px; border-radius: 10px; color: var(--fifa-dark-purple);">
+                    <h2 style="color: var(--fifa-dark-purple);">TIENDA DEL MUNDIAL</h2>
+                    <div style="font-size: 1.2rem; font-weight: bold;">Tus Monedas: 🪙 <span id="shop-coin-display">0</span></div>
+                </div>
+                <p style="margin-bottom: 20px;">Gasta tus monedas (balones) en sobres y objetos exclusivos. Los objetos de oro sirven para conseguir múltiples cartas en Intercambio.</p>
+                
+                <div class="shop-grid" id="shop-grid">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 6: TROFEOS -->
+        <section id="trophies-view" class="view">
+            <div class="inventory-section">
+                <div class="inventory-header">
+                    <h2>SALA DE TROFEOS Y COLECCIÓN</h2>
+                    <p>Aquí se muestran tus objetos más valiosos y tu progreso histórico.</p>
+                </div>
+                <div id="world-cup-showcase"></div>
+                <div class="trophies-grid" id="trophies-grid">
+                    <!-- Dinámico -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 7: CÓDIGOS -->
+        <section id="codes-view" class="view">
+            <div class="codes-container">
+                <h2>CÓDIGOS PROMOCIONALES</h2>
+                <div class="input-group">
+                    <input type="text" id="promo-code-input" placeholder="Ej: PANINI2026">
+                    <button class="btn-action" onclick="app.redeemCode()">Canjear</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="settings-btn" onclick="app.openModal('settings-modal')" title="Ajustes">⚙️</div>
+
+    </main>
+
+    <!-- MODAL: AJUSTES -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <button class="btn-close-modal" onclick="app.closeModal('settings-modal')">✖</button>
+            <h2>AJUSTES</h2>
+            <button class="btn-modal" onclick="app.activateCommands()">Activar comandos (Ñ)</button>
+            <button class="btn-modal" onclick="app.openAllCodesModal()">Conseguir todos los códigos</button>
+            <button class="btn-modal" onclick="app.openAlbumsModal()">Ver más álbumes</button>
+        </div>
+    </div>
+
+    <!-- MODAL: MÁS ÁLBUMES -->
+    <div class="modal-overlay" id="albums-modal">
+        <div class="modal-content">
+            <button class="btn-back-modal" onclick="app.closeModal('albums-modal'); app.openModal('settings-modal')">← Regresar a Ajustes</button>
+            <h2>MÁS ÁLBUMES DISPONIBLES</h2>
+            <p style="margin-bottom: 15px; color: #666;">Las ediciones pasadas estarán disponibles en futuras actualizaciones.</p>
+            <button class="btn-modal" disabled style="opacity: 0.6; cursor: not-allowed; display: flex; justify-content: space-between;"><span>🇶🇦 Qatar 2022</span> <span>(Próximamente)</span></button>
+            <button class="btn-modal" disabled style="opacity: 0.6; cursor: not-allowed; display: flex; justify-content: space-between;"><span>🇷🇺 Rusia 2018</span> <span>(Próximamente)</span></button>
+            <button class="btn-modal" disabled style="opacity: 0.6; cursor: not-allowed; display: flex; justify-content: space-between;"><span>🇧🇷 Brasil 2014</span> <span>(Próximamente)</span></button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="codes-modal">
+        <div class="modal-content">
+            <button class="btn-back-modal" onclick="app.closeModal('codes-modal'); app.openModal('settings-modal')">← Regresar a Ajustes</button>
+            <h2>LISTA DE CÓDIGOS</h2>
+            <div class="codes-list" id="all-codes-list"></div>
+            <button class="btn-action" style="width: 100%; margin-bottom: 10px;" onclick="app.copyAllCodes()">Copiar todos los códigos</button>
+        </div>
+    </div>
+
+    <!-- MODAL: COMANDOS -->
+    <div class="modal-overlay" id="commands-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="btn-close-modal" onclick="app.closeModal('commands-modal')">✖</button>
+            <h2 style="color: var(--fifa-neon-green);"><span style="color: #000;">💻</span> PANEL DE DESARROLLADOR</h2>
+            
+            <div class="command-section">
+                <h3 style="margin-bottom: 10px;">🏆 Completar Álbum</h3>
+                <button class="btn-action btn-trade-all" style="width: 100%; margin-bottom: 10px;" onclick="app.cmdCompleteAlbum()">Completar Todo el Álbum</button>
+                <div style="display: flex; gap: 10px;">
+                    <select id="cmd-page-select"></select>
+                    <button class="btn-action" onclick="app.cmdCompletePage()">Completar Hoja</button>
+                </div>
+            </div>
+
+            <div class="command-section">
+                <h3 style="margin-bottom: 10px;">🛠️ Hacer tu propio sobre</h3>
+                <label>Tipo de Sobre:</label>
+                <select id="cmd-pack-type" onchange="app.updateCustomPackLimit()">
+                    <option value="5">Normal (5 Cartas)</option>
+                    <option value="13">Deluxe (13 Cartas)</option>
+                    <option value="cc">Coca-Cola (3 Cartas)</option>
+                    <option value="mcd">McDonald's (3 Cartas)</option>
+                </select>
+                
+                <button class="btn-action" style="width: 100%; margin-bottom: 10px; background: var(--fifa-purple);" onclick="app.openDevCountryModal()">Ver Jugadores (Elegir)</button>
+                
+                <div class="custom-cards-list" id="cmd-cards-list"></div>
+                <p style="font-size: 0.8rem; margin-bottom: 10px;">Cartas: <span id="cmd-pack-count">0</span> / <span id="cmd-pack-limit">5</span></p>
+                
+                <button class="btn-action btn-trade-all" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="app.saveCustomPack()">Guardar Sobre Personalizado</button>
+            </div>
+
+            <div class="command-section">
+                <h3 style="margin-bottom: 10px;">💰 Añadir Monedas</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="cmd-coins-input" value="1000" min="1" style="margin-bottom: 0;">
+                    <button class="btn-action" style="padding: 10px;" onclick="app.cmdAddCoins()">Añadir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ELEGIR PAÍS DEV -->
+    <div class="modal-overlay" id="dev-country-modal">
+        <div class="modal-content">
+            <button class="btn-back-modal" onclick="app.closeModal('dev-country-modal'); app.openModal('commands-modal')">← Volver al Panel</button>
+            <h2>Elige un País</h2>
+            <div class="country-grid" id="dev-country-grid"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: ELEGIR JUGADOR DEV -->
+    <div class="modal-overlay" id="dev-player-modal">
+        <div class="modal-content">
+            <button class="btn-back-modal" onclick="app.closeModal('dev-player-modal'); app.openDevCountryModal()">← Volver a Países</button>
+            <h2 id="dev-player-title">Jugadores</h2>
+            <div class="dev-player-grid" id="dev-player-grid"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: ALERTA DE VICTORIA -->
+    <div class="modal-overlay" id="victory-modal">
+        <div class="modal-content" style="text-align: center;">
+            <button class="btn-close-modal" onclick="app.closeModal('victory-modal')">✖</button>
+            <h2 style="font-size: 2.5rem; color: var(--gold); margin-bottom: 10px;">¡FELICIDADES!</h2>
+            <div style="font-size: 6rem; margin: 20px 0; animation: popIn 1s infinite alternate;">🏆</div>
+            <p style="font-size: 1.2rem; font-weight: bold;">¡Has completado el Álbum del Mundial 2026!</p>
+            <p style="margin-top: 10px; color: var(--fifa-magenta);">La Copa del Mundo ha sido añadida a tu Sala de Trofeos.</p>
+            <button class="btn-action" style="margin-top: 20px;" onclick="app.switchView('trophies-view'); app.closeModal('victory-modal')">Ver mi Trofeo</button>
+        </div>
+    </div>
+
+    <script>
+        const PLAYERS_PER_TEAM = 12; 
+        const VALID_CODES = ['MUNDIAL2026', 'PANINI2026', 'FIFA26', 'DELUXE26', 'MESSI', 'CRISTIANO', 'PANINIEXTRAS', 'SOBRESGRATIS', 'MEXICO26'];
+        
+        const GROUPS = {
+            'A': [
+                { code: 'MEX', name: 'México', isHost: true },
+                { code: 'RSA', name: 'South Africa' },
+                { code: 'KOR', name: 'Korea Replublic' },
+                { code: 'CZE', name: 'Czechia' }
+            ],
+            'B': [
+                { code: 'CAN', name: 'Canada' },
+                { code: 'BIH', name: 'Bosnia-Herzegovina' },
+                { code: 'QAT', name: 'Qatar' },
+                { code: 'SUI', name: 'Switzerland' }
+            ],
+            'C': [
+                { code: 'BRA', name: 'Brazil', isHost: true },
+                { code: 'MAR', name: 'Morocco' },
+                { code: 'HAI', name: 'Haiti' },
+                { code: 'SCO', name: 'Scotland' }
+            ],
+            'D': [
+                { code: 'USA', name: 'USA', },
+                { code: 'PAR', name: 'Paraguay' },
+                { code: 'AUS', name: 'Australia' },
+                { code: 'TUR', name: 'Turkiye' }
+            ],
+            'E': [
+                { code: 'GER', name: 'Germany', },
+                { code: 'CUW', name: 'Curaçao' },
+                { code: 'CIV', name: "Côte d'Ivoire" },
+                { code: 'ECU', name: 'Ecuador' }
+            ],
+            'F': [
+                { code: 'NED', name: 'Netherlands', },
+                { code: 'JPN', name: 'Japan' },
+                { code: 'SWE', name: 'Sweden' },
+                { code: 'TUN', name: 'Tunisia' }
+            ],
+            'G': [
+                { code: 'BEL', name: 'Belgium', },
+                { code: 'EGY', name: 'Egypt' },
+                { code: 'IRN', name: 'IR Iran' },
+                { code: 'NZL', name: 'NEW Zealand' }
+            ],
+            'H': [
+                { code: 'ESP', name: 'Spain', },
+                { code: 'CPV', name: 'Cabo Verde' },
+                { code: 'KSA', name: 'Saudi Arabia' },
+                { code: 'URU', name: 'Uruguay' }
+            ],
+            'I': [
+                { code: 'FRA', name: 'France', },
+                { code: 'SEN', name: 'Senegal' },
+                { code: 'IRQ', name: 'Iraq' },
+                { code: 'NOR', name: 'Norway' }
+            ],
+            'J': [
+                { code: 'ARG', name: 'Argentina', },
+                { code: 'ALG', name: 'Algeria' },
+                { code: 'AUT', name: 'Austria' },
+                { code: 'JOR', name: 'Jordan' }
+            ],
+            'K': [
+                { code: 'POR', name: 'Portugal', },
+                { code: 'COD', name: 'Congo DR' },
+                { code: 'UZB', name: 'Uzbekistan' },
+                { code: 'COL', name: 'Colombia' }
+            ],
+            'L': [
+                { code: 'ENG', name: 'England', },
+                { code: 'CRO', name: 'Croatia' },
+                { code: 'GHA', name: 'Ghana' },
+                { code: 'PAN', name: 'Panama' }
+            ]
+        };
+
+        const TEAMS = [];
+        Object.keys(GROUPS).forEach(g => GROUPS[g].forEach(t => TEAMS.push({ ...t, group: g })));
+
+        // Añadir equipos promocionales y logros
+        const SPECIAL_TEAMS = [
+            { code: 'CC1', name: 'Coca-Cola (Pág 1)', group: 'PROMO', count: 14 },
+            { code: 'CC2', name: 'Coca-Cola (Pág 2)', group: 'PROMO', count: 16 },
+            { code: 'CC3', name: 'Coca-Cola (Pág 3)', group: 'PROMO', count: 16 },
+            { code: 'MCD', name: 'McDonald\'s', group: 'PROMO', count: 6 },
+            { code: 'LOG', name: 'Tus Logros', group: 'ACHIEVEMENT', count: 0 }
+        ];
+        SPECIAL_TEAMS.forEach(t => TEAMS.push(t));
+
+        const MEX_PLAYERS = ['Escudo Oficial', 'Luis Malagón', 'Johan Vásquez', 'César Montes', 'Jesús Gallardo', 'Israel Reyes', 'Edson Álvarez', 'Marcel Ruiz', 'Hirving Lozano', 'Raúl Jiménez', 'Alexis Vega', 'Roberto Alvarado'];
+
+// NUEVA BASE DE DATOS DE JUGADORES
+const PLAYERS_DB = {
+    'MEX': ['Escudo Oficial', 'Escudo Oficial', 'Luis Malagón', 'Johan Vásquez', 'César Montes', 'Jesús Gallardo', 'Israel Reyes', 'Edson Álvarez', 'Marcel Ruiz', 'Hirving Lozano', 'Raúl Jiménez', 'Alexis Vega', 'Roberto Alvarado'],
+    'ARG': ['Escudo ARG', 'Dibu', 'Otamendi', 'Cuti', 'Tagliafico', 'Enzo', 'De Paul', 'Mac Allister', ' Lionel Messi', 'Di María', 'Julián', 'Lautaro'],
+    'ESP': ['Escudo ESP', 'Unai Simón', 'Carvajal', 'Le Normand', 'Laporte', 'Grimaldo', 'Rodri', 'Fabián', 'Pedri', 'Lamine Yamal', 'Morata', 'Williams'],
+    'POR': ['Escudo POR', 'Diogo Costa', 'Cancelo', 'Ruben Dias', 'Pepe', 'Palhinha', 'Vitinha', 'Bruno F.', 'Bernardo S.', 'Leao', 'Cristiano Ronaldo', 'Joao Felix'],
+    'FRA': ['Escudo FRA', 'Mike Maignan', 'William Saliba', 'Jules Koundé', 'Théo Hernández', 'Aurélien Tchouaméni', 'Eduardo Camavinga', 'Ousmane Dembélé', 'Kylian Mbappé', 'Bradley Barcola', 'Désiré Doué', 'Hugo Eketiké'],
+    'BRA': ['Escudo BRA', 'Alisson', 'Marquinhos', 'Éder Militão', 'Gabriel Magalhães', 'Casemiro', 'Bruno Guimarães', 'Vinícius Júnior', 'Rodrygo', 'Matheus Cunha', 'Raphinha', 'Estêvão'],
+    'NAN': ['Escudo NAN', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre1', 'nombre2'],
+    // Agrega más países siguiendo este formato...
+};
+
+
+        const db = [];
+        let idCounter = 1;
+
+        TEAMS.forEach(team => {
+            if (team.group === 'ACHIEVEMENT') return; // Sin cartas físicas en DB para logros
+
+            let limit = team.group === 'PROMO' ? team.count : PLAYERS_PER_TEAM;
+            
+            for(let i=0; i < limit; i++) {
+                let pName = `Jugador ${i}`;
+                let isPremium = false;
+                let type = 'player';
+
+                if (team.group !== 'PROMO') {
+                    pName = (i === 0) ? `Escudo ${team.name}` : `Jugador ${i}`;
+                    if (team.code === 'MEX') pName = MEX_PLAYERS[i];
+                    if (team.code === 'ARG' && i === 11) pName = 'Lionel Messi';
+                    if (team.code === 'POR' && i === 11) pName = 'Cristiano Ronaldo';
+                    if (team.code === 'FRA' && i === 11) pName = 'Kylian Mbappé.';
+                    if (team.code === 'BRA' && i === 10) pName = 'Vinícius Jr';
+                    if (team.code === 'BRA' && i === 11) pName = 'Neymar Jr';
+                    if (team.code === 'ESP' && i === 11) pName = 'Lamine Yamal';
+                    isPremium = (i === 0) || ['Lionel Messi', 'Cristiano Ronaldo', 'Neymar Jr', 'Lamine Yamal', 'Vinícius Júnior', 'KylianMbappé.'].includes(pName);
+                    if (i === 0) type = 'shield';
+                } else {
+            // --- INICIO DE TU MODIFICACIÓN ---
+            if (team.code === 'MCD') {
+                const nombresMcDonalds = ['LAMINE YAMAL', 'FEDERICO VALVERDE', ' VIRCIL VAN DIJK', 'ANTONNE ROBINSON', 'LÁUTARO MARTINEZ', 'RAUL JIMENEZ'];
+                pName = nombresMcDonalds[i] || `McDonald's ${i+1}`;
+            } else {
+                pName = `${team.name} Promo ${i+1}`;
+            }
+            // --- FIN DE TU MODIFICACIÓN ---
+
+            if (team.code === 'MCD' && i === 0) isPremium = true; 
+            // ... (deja el resto del código como estaba)
+        }
+
+                db.push({
+                    id: idCounter++,
+                    countryCode: team.code,
+                    countryName: team.name,
+                    group: team.group,
+                    indexInTeam: i,
+                    name: pName,
+                    type: type,
+                    isPremium: isPremium
+                });
+            }
+        });
+
+        const TOTAL_STICKERS = db.length;
+
+        const SHOP_ITEMS = [
+            // Promociones de Sobres
+            { id: 'pack3', name: '3 Sobres', price: 300, type: 'packs', value: 3, icon: '📦' },
+            { id: 'pack5', name: '5 Sobres', price: 500, type: 'packs', value: 5, icon: '📦' },
+            { id: 'box100', name: 'Caja 100 Sobres', price: 8000, type: 'packs', value: 100, icon: '🧰' },
+            { id: 'packCC', name: '3 Sobres Coca-Cola', price: 600, type: 'packCC', value: 3, icon: '🥤' },
+            { id: 'packMCD', name: '3 Sobres McDonald\'s', price: 600, type: 'packMCD', value: 3, icon: '🍔' },
+            
+            // Trofeos y Premios Masivos
+            { id: 'balonOro', name: 'Balón de Oro', price: 1000, type: 'item', icon: '⚽' },
+            { id: 'botaOro', name: 'Bota de Oro', price: 1000, type: 'item', icon: '👟' },
+            { id: 'guanteOro', name: 'Guante de Oro', price: 1000, type: 'item', icon: '🧤' },
+            { id: 'theBest', name: 'The Best FIFA Men\'s Player', price: 1500, type: 'item', icon: '⭐' },
+            { id: 'botaOroMundial', name: 'Bota de Oro del Mundial', price: 1200, type: 'item', icon: '⚽' },
+            { id: 'balonOroMundial', name: 'Balón de Oro del Mundial', price: 1500, type: 'item', icon: '🥇' },
+            { id: 'mvp', name: 'Jugador del Partido (MVP)', price: 500, type: 'item', icon: '🌟' },
+            { id: 'yashin', name: 'Trofeo Yashin', price: 800, type: 'item', icon: '🧤' },
+            { id: 'kopa', name: 'Trofeo Kopa', price: 800, type: 'item', icon: '👦' },
+            { id: 'gerdMuller', name: 'Trofeo Gerd Müller', price: 900, type: 'item', icon: '⚽' },
+            { id: 'maxAsistente', name: 'Máximo Asistente', price: 700, type: 'item', icon: '🎯' },
+            { id: 'uefaPlayer', name: 'Jugador Temp. UEFA', price: 1000, type: 'item', icon: '🏅' },
+            { id: 'theBestGK', name: 'Mejor Portero FIFA', price: 1000, type: 'item', icon: '🏆' },
+            { id: 'mejorJoven', name: 'Mejor Jugador Joven', price: 700, type: 'item', icon: '🎖️' },
+            { id: 'socrates', name: 'Premio Sócrates', price: 800, type: 'item', icon: '❤️' }
+        ];
+
+        const gameState = {
+            album: [],             
+            inventario: [],        
+            repetidos: [],         
+            sobresDisponibles: 10, 
+            sobresCocaCola: 0,
+            sobresMcDonalds: 0,
+            monedas: 500,          
+            codigosUsados: [],
+            currentTeamIndex: 0,   
+            activePackIndex: 0,    // 0: Normal, 1: CocaCola, 2: McDonalds
+            pendingPasteId: null,  
+            tradeSelectedId: null, 
+            openedPackCards: [],
+            timerDuration: 180, 
+            currentTimer: 180,
+            comandosActivos: false,
+            customPackQueue: [],     
+            customPackType: '5', // '5', '13', 'cc', 'mcd'
+            items: {
+                copaMundial: 0, balonOro: 0, botaOro: 0, guanteOro: 0, theBest: 0,
+                botaOroMundial: 0, balonOroMundial: 0, mvp: 0, yashin: 0, kopa: 0,
+                gerdMuller: 0, maxAsistente: 0, uefaPlayer: 0, theBestGK: 0, mejorJoven: 0, socrates: 0
+            }
+        };
+
+        const app = {
+            init() {
+                this.cacheDOM();
+                this.bindEvents();
+                this.startTimer();
+                this.updateUI();
+                this.renderAlbum();
+                this.renderShop();
+                this.populateCommandSelect();
+            },
+
+            cacheDOM() {
+                this.navBtns = document.querySelectorAll('.nav-btn');
+                this.views = document.querySelectorAll('.view');
+                
+                // UI Header
+                this.headerPackCount = document.getElementById('header-pack-count');
+                this.headerCoinCount = document.getElementById('header-coin-count');
+                this.progressFill = document.getElementById('progress-fill');
+                this.progressText = document.getElementById('progress-text');
+                this.navPilaCount = document.getElementById('nav-pila-count');
+                this.navTradeCount = document.getElementById('nav-trade-count');
+                
+                // Album
+                this.pageLeft = document.getElementById('page-left');
+                this.pageRight = document.getElementById('page-right');
+                this.btnPrev = document.getElementById('btn-prev');
+                this.btnNext = document.getElementById('btn-next');
+                this.pageIndicator = document.getElementById('page-indicator');
+                
+                // Packs
+                this.mainPackCount = document.getElementById('main-pack-count');
+                this.packGraphic = document.getElementById('pack-graphic');
+                this.btnOpenPack = document.getElementById('btn-open-pack');
+                this.revealArea = document.getElementById('reveal-area');
+                this.revealGrid = document.getElementById('reveal-grid');
+                this.timerDisplay = document.getElementById('timer-display');
+                
+                // Grids
+                this.pilaGrid = document.getElementById('pila-grid');
+                this.tradeGrid = document.getElementById('trade-grid');
+                this.tradeSelectedName = document.getElementById('trade-selected-name');
+                this.btnExecuteTrade = document.getElementById('btn-execute-trade');
+                this.btnSellCard = document.getElementById('btn-sell-card');
+                this.btnTradeAll = document.getElementById('btn-trade-all');
+                this.specialTradeGrid = document.getElementById('special-trade-grid');
+                this.specialTradeContainer = document.getElementById('trade-special-container');
+                
+                this.msgBox = document.getElementById('message-box');
+                this.promoInput = document.getElementById('promo-code-input');
+            },
+
+            bindEvents() {
+                this.navBtns.forEach(btn => btn.addEventListener('click', (e) => this.switchView(e.target.dataset.target)));
+                this.btnPrev.addEventListener('click', () => this.changeTeam(-1));
+                this.btnNext.addEventListener('click', () => this.changeTeam(1));
+
+                this.promoInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); this.redeemCode(); } });
+
+                window.addEventListener('keydown', (e) => {
+                    // Abrir panel dev
+                    if((e.key === 'ñ' || e.key === 'Ñ') && gameState.comandosActivos) {
+                        this.openModal('commands-modal');
+                    }
+                    // Navegar álbum con flechas
+                    if (document.getElementById('album-view').classList.contains('active')) {
+                        if (e.key === 'ArrowLeft') this.changeTeam(-1);
+                        if (e.key === 'ArrowRight') this.changeTeam(1);
+                    }
+                });
+            },
+
+            showMessage(text, isError = false) {
+                this.msgBox.textContent = text;
+                this.msgBox.className = isError ? 'error show' : 'show';
+                setTimeout(() => this.msgBox.classList.remove('show'), 3000);
+            },
+
+            switchView(targetId) {
+                this.navBtns.forEach(btn => btn.classList.remove('active'));
+                this.views.forEach(view => view.classList.remove('active'));
+                
+                const navBtn = document.querySelector(`[data-target="${targetId}"]`);
+                if(navBtn) navBtn.classList.add('active');
+                document.getElementById(targetId).classList.add('active');
+
+                if(targetId !== 'album-view' && targetId !== 'paste-view') gameState.pendingPasteId = null;
+
+                if(targetId === 'album-view') this.renderAlbum();
+                if(targetId === 'paste-view') this.renderInventory();
+                if(targetId === 'trade-view') { gameState.tradeSelectedId = null; this.renderTrade(); }
+                if(targetId === 'shop-view') { document.getElementById('shop-coin-display').textContent = gameState.monedas; }
+                if(targetId === 'trophies-view') this.renderTrophies();
+            },
+
+            updateUI() {
+                const progressNum = (gameState.album.length / TOTAL_STICKERS) * 100;
+                this.progressFill.style.width = `${progressNum}%`;
+                this.progressText.textContent = `${Math.round(progressNum)}%`;
+
+                const totalSobres = gameState.sobresDisponibles + gameState.sobresCocaCola + gameState.sobresMcDonalds;
+                this.headerPackCount.textContent = totalSobres;
+                this.headerCoinCount.textContent = gameState.monedas;
+                
+                this.navPilaCount.textContent = gameState.inventario.length;
+                this.navTradeCount.textContent = gameState.repetidos.length;
+
+                this.updatePackSelectorUI();
+
+                if(document.getElementById('shop-view').classList.contains('active')) {
+                    document.getElementById('shop-coin-display').textContent = gameState.monedas;
+                }
+            },
+
+            updatePackSelectorUI() {
+                const types = [
+                    { name: 'Sobre Normal / Deluxe', count: gameState.sobresDisponibles, id: 'normal' },
+                    { name: 'Sobre Coca-Cola', count: gameState.sobresCocaCola, id: 'cc' },
+                    { name: 'Sobre McDonald\'s', count: gameState.sobresMcDonalds, id: 'mcd' }
+                ];
+                
+                const currentType = types[gameState.activePackIndex];
+                document.getElementById('active-pack-name').textContent = currentType.name;
+                document.getElementById('active-pack-name').style.color = currentType.id === 'cc' ? '#F40009' : (currentType.id === 'mcd' ? '#FFC72C' : 'var(--fifa-neon-green)');
+                document.getElementById('active-pack-count').textContent = currentType.count;
+
+                const hasActivePacks = currentType.count > 0;
+                this.btnOpenPack.disabled = !hasActivePacks;
+                this.packGraphic.style.opacity = hasActivePacks ? '1' : '0.5';
+                this.packGraphic.style.cursor = hasActivePacks ? 'pointer' : 'not-allowed';
+
+                // Styling the graphic
+                this.packGraphic.className = 'pack-graphic'; // Reset
+                const title = document.getElementById('pack-title');
+                const icon = document.getElementById('pack-icon');
+                const subtitle = document.getElementById('pack-subtitle');
+
+                if (currentType.id === 'cc') {
+                    this.packGraphic.classList.add('cocacola');
+                    title.textContent = "COCA-COLA"; icon.textContent = "🥤"; subtitle.textContent = "3 CROMOS ROJOS";
+                } else if (currentType.id === 'mcd') {
+                    this.packGraphic.classList.add('mcdonalds');
+                    title.textContent = "MCDONALD'S"; icon.textContent = "🍟"; subtitle.textContent = "3 CROMOS (1 ORO)";
+                } else {
+                    title.textContent = "2026"; icon.textContent = "🌟"; subtitle.textContent = "5 CROMOS";
+                }
+            },
+
+            changePackType(dir) {
+                gameState.activePackIndex += dir;
+                if (gameState.activePackIndex < 0) gameState.activePackIndex = 2;
+                if (gameState.activePackIndex > 2) gameState.activePackIndex = 0;
+                this.updatePackSelectorUI();
+            },
+
+            startTimer() {
+                setInterval(() => {
+                    gameState.currentTimer--;
+                    if (gameState.currentTimer <= 0) {
+                        // Probabilidad de sobres promocionales
+                        if (Math.random() < 0.1) {
+                            gameState.sobresCocaCola += 1;
+                            this.showMessage('¡Has recibido 3 sobres y 1 ESPECIAL DE COCA-COLA gratis!');
+                        } else if (Math.random() < 0.1) {
+                            gameState.sobresMcDonalds += 1;
+                            this.showMessage('¡Has recibido 3 sobres y 1 ESPECIAL DE MCDONALD\'S gratis!');
+                        } else {
+                            this.showMessage('¡Has recibido 3 sobres gratis!');
+                        }
+                        gameState.sobresDisponibles += 3;
+                        this.updateUI();
+                        gameState.currentTimer = gameState.timerDuration;
+                    }
+                    const m = Math.floor(gameState.currentTimer / 60).toString().padStart(2, '0');
+                    const s = (gameState.currentTimer % 60).toString().padStart(2, '0');
+                    this.timerDisplay.textContent = `${m}:${s}`;
+                }, 1000);
+            },
+
+            openModal(id) { document.getElementById(id).classList.add('active'); },
+            closeModal(id) { document.getElementById(id).classList.remove('active'); },
+            openAlbumsModal() { this.closeModal('settings-modal'); this.openModal('albums-modal'); },
+            
+            activateCommands() {
+                gameState.comandosActivos = true;
+                this.showMessage('Comandos de desarrollador activados. Presiona Ñ para abrir el panel.');
+                this.closeModal('settings-modal');
+            },
+
+            openAllCodesModal() {
+                this.closeModal('settings-modal');
+                document.getElementById('all-codes-list').innerHTML = VALID_CODES.map(c => `<p>${c}</p>`).join('');
+                this.openModal('codes-modal');
+            },
+
+            copyAllCodes() {
+                const text = VALID_CODES.join('\n');
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                this.showMessage('Códigos copiados al portapapeles.');
+            },
+
+            populateCommandSelect() {
+                const select = document.getElementById('cmd-page-select');
+                if (select) select.innerHTML = TEAMS.map((t, index) => `<option value="${index}">${t.name}</option>`).join('');
+            },
+
+            cmdCompleteAlbum() {
+                db.filter(c => c.group !== 'ACHIEVEMENT').forEach(c => {
+                    if (!gameState.album.includes(c.id)) {
+                        gameState.album.push(c.id);
+                        const invIdx = gameState.inventario.indexOf(c.id);
+                        if(invIdx > -1) gameState.inventario.splice(invIdx, 1);
+                    }
+                });
+                this.updateUI();
+                this.renderAlbum();
+                this.showMessage('¡Álbum completado mediante comandos!');
+                this.closeModal('commands-modal');
+                this.checkAlbumCompletion();
+            },
+
+            cmdCompletePage() {
+                const teamIndex = parseInt(document.getElementById('cmd-page-select').value);
+                const team = TEAMS[teamIndex];
+                db.filter(c => c.countryCode === team.code).forEach(c => {
+                    if (!gameState.album.includes(c.id)) {
+                        gameState.album.push(c.id);
+                        const invIdx = gameState.inventario.indexOf(c.id);
+                        if(invIdx > -1) gameState.inventario.splice(invIdx, 1);
+                    }
+                });
+                this.updateUI();
+                this.renderAlbum();
+                this.showMessage(`Página de ${team.name} completada.`);
+                this.closeModal('commands-modal');
+                this.checkAlbumCompletion();
+            },
+
+            cmdAddCoins() {
+                const val = parseInt(document.getElementById('cmd-coins-input').value);
+                if(val > 0) {
+                    gameState.monedas += val;
+                    this.updateUI();
+                    this.showMessage(`+${val} Monedas añadidas.`);
+                }
+            },
+
+            executePaste(id) {
+                const invIndex = gameState.inventario.indexOf(id);
+                if (invIndex > -1) {
+                    gameState.inventario.splice(invIndex, 1);
+                    gameState.album.push(id);
+                    gameState.pendingPasteId = null;
+                    const card = db.find(c => c.id === id);
+                    if (card.isPremium) {
+                        gameState.monedas += 50;
+                        this.showMessage(`¡Pegaste una carta valiosa! +50 Monedas.`);
+                    } else {
+                        gameState.monedas += 5;
+                        this.showMessage(`¡Carta pegada! +5 Monedas.`);
+                    }
+                    this.updateUI();
+                    this.renderAlbum();
+                    this.checkAlbumCompletion();
+                }
+            },
+
+            checkAlbumCompletion() {
+                const totalStickers = db.filter(c => c.group !== 'ACHIEVEMENT').length;
+                if (gameState.album.length >= totalStickers) {
+                    if (gameState.items.copaMundial === 0) {
+                        gameState.items.copaMundial = 1;
+                        this.openModal('victory-modal');
+                    }
+                }
+            },
+
+            // Panel Dev: Selector de Jugadores por País
+            openDevCountryModal() {
+                this.closeModal('commands-modal');
+                const grid = document.getElementById('dev-country-grid');
+                grid.innerHTML = TEAMS.map(t => `<button class="country-btn" onclick="app.openDevPlayerModal('${t.code}')">${t.code} - ${t.name}</button>`).join('');
+                this.openModal('dev-country-modal');
+            },
+            openDevPlayerModal(code) {
+                this.closeModal('dev-country-modal');
+                const teamName = TEAMS.find(t => t.code === code).name;
+                document.getElementById('dev-player-title').textContent = `Jugadores de ${teamName}`;
+                
+                const players = db.filter(c => c.countryCode === code);
+                const grid = document.getElementById('dev-player-grid');
+                grid.innerHTML = players.map(p => `
+                    <div class="dev-player-item ${p.isPremium ? 'premium' : ''}" onclick="app.addCustomCardToPack(${p.id})">
+                        ${p.isPremium ? '⭐' : ''} ${p.indexInTeam}: ${p.name}
+                    </div>
+                `).join('');
+                this.openModal('dev-player-modal');
+            },
+            addCustomCardToPack(id) {
+                let limitVal = document.getElementById('cmd-pack-type').value;
+                let limit = (limitVal === 'cc' || limitVal === 'mcd') ? 3 : parseInt(limitVal);
+                
+                if (gameState.customPackQueue.length >= limit) {
+                    this.showMessage('El sobre ya está lleno.', true);
+                    return;
+                }
+                const card = db.find(c => c.id === id);
+                gameState.customPackQueue.push(card);
+                this.renderCustomCardsList();
+                this.showMessage(`Añadido: ${card.name}`);
+            },
+            updateCustomPackLimit() {
+                let limitVal = document.getElementById('cmd-pack-type').value;
+                let limit = (limitVal === 'cc' || limitVal === 'mcd') ? 3 : parseInt(limitVal);
+                gameState.customPackType = limitVal;
+                
+                document.getElementById('cmd-pack-limit').textContent = limit;
+                if (gameState.customPackQueue.length > limit) {
+                    gameState.customPackQueue = gameState.customPackQueue.slice(0, limit);
+                    this.renderCustomCardsList();
+                }
+            },
+            renderCustomCardsList() {
+                document.getElementById('cmd-pack-count').textContent = gameState.customPackQueue.length;
+                document.getElementById('cmd-cards-list').innerHTML = gameState.customPackQueue.map(c => 
+                    `<div class="custom-card-badge" title="${c.name}">${c.countryCode} ${c.indexInTeam}</div>`
+                ).join('');
+            },
+            saveCustomPack() {
+                let limitVal = document.getElementById('cmd-pack-type').value;
+                let limit = (limitVal === 'cc' || limitVal === 'mcd') ? 3 : parseInt(limitVal);
+                
+                if (gameState.customPackQueue.length !== limit) {
+                    this.showMessage(`Debes elegir exactamente ${limit} cartas.`, true);
+                    return;
+                }
+                
+                if (limitVal === 'cc') { gameState.activePackIndex = 1; gameState.sobresCocaCola++; }
+                else if (limitVal === 'mcd') { gameState.activePackIndex = 2; gameState.sobresMcDonalds++; }
+                else { gameState.activePackIndex = 0; gameState.sobresDisponibles++; }
+                
+                this.updateUI();
+                this.showMessage('¡Sobre Personalizado guardado! Ábrelo ahora.');
+                this.closeModal('commands-modal');
+            },
+
+            changeTeam(dir) {
+                let newIndex = gameState.currentTeamIndex + dir;
+                if (newIndex < 0) newIndex = 0;
+                if (newIndex >= TEAMS.length) newIndex = TEAMS.length - 1;
+                gameState.currentTeamIndex = newIndex;
+                this.renderAlbum();
+            },
+
+            createStickerHTML(card, isGlued) {
+                if (isGlued) {
+                    const extraClass = card.isPremium ? 'premium' : '';
+                    return `
+                        <div class="sticker-card ${extraClass}">
+                            <div class="id-badge">${card.countryCode} ${card.indexInTeam}</div>
+                            <div class="art">${card.type === 'shield' ? '🛡️' : '👤'}</div>
+                            <div class="info"><strong>${card.name}</strong></div>
+                        </div>`;
+                }
+
+                const tieneCromo = gameState.inventario.includes(card.id);
+                if (tieneCromo) {
+                    return `
+                        <div class="slot glow-gold">
+                            <div class="slot-country">${card.countryCode} ${card.indexInTeam}</div>
+                            <button class="btn-add-sticker" onclick="app.executePaste(${card.id})">+</button>
+                        </div>`;
+                }
+                return `<div class="slot"><div class="slot-country">${card.countryCode}</div>${card.indexInTeam}</div>`;
+            },
+
+            renderAlbum() {
+                const team = TEAMS[gameState.currentTeamIndex];
+                const teamStickers = db.filter(c => c.countryCode === team.code);
+                
+                this.btnPrev.disabled = gameState.currentTeamIndex === 0;
+                this.btnNext.disabled = gameState.currentTeamIndex >= TEAMS.length - 1;
+                this.pageIndicator.textContent = team.name;
+
+                if (team.group === 'ACHIEVEMENT') {
+                    this.pageLeft.style.display = 'none';
+                    this.pageRight.style.width = '100%';
+                    this.pageRight.style.display = 'block';
+                    
+                    const progress = Math.floor((gameState.album.length / TOTAL_STICKERS) * 100);
+                    
+                    this.pageRight.innerHTML = `
+                        <div class="logros-page">
+                            <div style="display:flex; justify-content: space-between; align-items: start;">
+                                <div class="logros-header">
+                                    <h2>TUS LOGROS</h2>
+                                    <p>Colecciona cromos y consigue insignias increíbles.</p>
+                                </div>
+                                <div style="font-size: 4rem; margin-right: 20px;">🏆</div>
+                            </div>
+                            <div class="logros-grid-container">
+                                <div class="logros-col">
+                                    <div class="logro-section">
+                                        <h3>Progreso del Álbum</h3>
+                                        <div class="logro-badges">
+                                            <div class="logro-badge-slot ${progress >= 25 ? 'unlocked' : ''}">${progress >= 25 ? '✓' : ''}<div class="logro-badge-label">Novato</div></div>
+                                            <div class="logro-badge-slot ${progress >= 75 ? 'unlocked' : ''}">${progress >= 75 ? '✓' : ''}<div class="logro-badge-label">Experto</div></div>
+                                            <div class="logro-badge-slot ${progress >= 100 ? 'unlocked' : ''}">${progress >= 100 ? '✓' : ''}<div class="logro-badge-label">Campeón</div></div>
+                                        </div>
+                                    </div>
+                                    <div class="logro-section">
+                                        <h3>Sobres Abiertos</h3>
+                                        <div class="logro-badges">
+                                            <div class="logro-badge-slot ${gameState.inventario.length > 10 ? 'unlocked' : ''}">10+<div class="logro-badge-label">10 Sobres</div></div>
+                                            <div class="logro-badge-slot ${gameState.inventario.length > 50 ? 'unlocked' : ''}">50+<div class="logro-badge-label">50 Sobres</div></div>
+                                            <div class="logro-badge-slot ${gameState.inventario.length > 100 ? 'unlocked' : ''}">100+<div class="logro-badge-label">100 Sobres</div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="logros-col" style="background: #1a1a1a;">
+                                    <div class="logro-section">
+                                        <h3>Promocionales</h3>
+                                        <div class="logro-badges">
+                                            <div class="logro-badge-slot ${gameState.album.some(id => db.find(c=>c.id===id).countryCode.startsWith('CC')) ? 'unlocked' : ''}">🥤<div class="logro-badge-label">Coca-Cola</div></div>
+                                            <div class="logro-badge-slot ${gameState.album.some(id => db.find(c=>c.id===id).countryCode === 'MCD') ? 'unlocked' : ''}">🍟<div class="logro-badge-label">McDonald's</div></div>
+                                        </div>
+                                    </div>
+                                    <div class="logro-section">
+                                        <h3>Economía</h3>
+                                        <div class="logro-badges">
+                                            <div class="logro-badge-slot ${gameState.monedas >= 1000 ? 'unlocked' : ''}">🪙<div class="logro-badge-label">1k Monedas</div></div>
+                                            <div class="logro-badge-slot ${gameState.monedas >= 5000 ? 'unlocked' : ''}">💰<div class="logro-badge-label">5k Monedas</div></div>
+                                            <div class="logro-badge-slot ${gameState.monedas >= 10000 ? 'unlocked' : ''}">👑<div class="logro-badge-label">10k Monedas</div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (team.group === 'PROMO') {
+                    this.pageLeft.style.display = 'block'; this.pageRight.style.display = 'block';
+                    this.pageRight.style.width = '50%';
+                    
+                    let html = `<div class="page-content"><div class="we-are-header" style="color: ${team.code==='MCD' ? '#FFC72C' : '#F40009'}"><span>SPECIAL</span><br>${team.name}</div><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%;">`;
+                    
+                    const half = Math.ceil(teamStickers.length / 2);
+                    
+                    let leftHtml = html;
+                    for(let i=0; i<half; i++) {
+                        const isGlued = gameState.album.includes(teamStickers[i].id);
+                        leftHtml += `<div class="slot-container">${this.createStickerHTML(teamStickers[i], isGlued)}</div>`;
+                    }
+                    this.pageLeft.innerHTML = leftHtml + `</div></div>`;
+
+                    let rightHtml = `<div class="page-content"><div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; margin-top: 50px;">`;
+                    for(let i=half; i<teamStickers.length; i++) {
+                        const isGlued = gameState.album.includes(teamStickers[i].id);
+                        rightHtml += `<div class="slot-container">${this.createStickerHTML(teamStickers[i], isGlued)}</div>`;
+                    }
+                    this.pageRight.innerHTML = rightHtml + `</div></div>`;
+                    return;
+                }
+
+                // Renderizado Normal de Equipos
+                this.pageLeft.style.display = 'block'; this.pageRight.style.display = 'block';
+                this.pageRight.style.width = '50%';
+
+                let leftHtml = `<div class="page-content"><div class="we-are-header"><span>WE ARE</span><br>${team.name}</div><div class="grid-left">`;
+                for(let i=0; i<=4; i++) {
+                    const isGlued = gameState.album.includes(teamStickers[i].id);
+                    leftHtml += `<div class="slot-container" id="slot-${i}">${this.createStickerHTML(teamStickers[i], isGlued)}</div>`;
+                }
+                this.pageLeft.innerHTML = leftHtml + `</div></div>`;
+
+                let rightHtml = `<div class="page-content"><div class="grid-right">`;
+                for(let i=5; i<=10; i++) {
+                    const isGlued = gameState.album.includes(teamStickers[i].id);
+                    rightHtml += `<div class="slot-container">${this.createStickerHTML(teamStickers[i], isGlued)}</div>`;
+                }
+
+                const groupTeams = GROUPS[team.group];
+                let flagsHtml = groupTeams ? groupTeams.map(t => `<div class="flag-item">${t.code} ${t.name}</div>`).join('') : '';
+                rightHtml += `<div class="group-box"><h3>GROUP ${team.group}</h3><div class="group-flags">${flagsHtml}</div></div>`;
+
+                const isGlued11 = gameState.album.includes(teamStickers[11].id);
+                rightHtml += `<div class="slot-container">${this.createStickerHTML(teamStickers[11], isGlued11)}</div></div></div>`;
+                this.pageRight.innerHTML = rightHtml;
+
+                if(window.innerWidth <= 900) {
+                    this.pageLeft.innerHTML += `<hr style="margin:20px 0;">${rightHtml}`;
+                    this.pageRight.style.display = 'none';
+                }
+            },
+
+            openPack() {
+                const types = [
+                    { id: 'normal', count: gameState.sobresDisponibles, limit: 5 },
+                    { id: 'cc', count: gameState.sobresCocaCola, limit: 3 },
+                    { id: 'mcd', count: gameState.sobresMcDonalds, limit: 3 }
+                ];
+                const activeType = types[gameState.activePackIndex];
+
+                if (activeType.count <= 0) {
+                    this.showMessage('No tienes sobres de este tipo.', true);
+                    return;
+                }
+
+                let isDeluxe = false;
+                if (gameState.customPackQueue.length > 0) {
+                    isDeluxe = (gameState.customPackType === '13');
+                } else {
+                    isDeluxe = (activeType.id === 'normal') && (Math.random() < 0.05); 
+                }
+
+                if (activeType.id === 'normal') gameState.sobresDisponibles--;
+                else if (activeType.id === 'cc') gameState.sobresCocaCola--;
+                else if (activeType.id === 'mcd') gameState.sobresMcDonalds--;
+
+                this.updateUI();
+                this.revealArea.style.display = 'none';
+                
+                const title = document.getElementById('pack-title');
+                const icon = document.getElementById('pack-icon');
+                const subtitle = document.getElementById('pack-subtitle');
+
+                if (isDeluxe && activeType.id === 'normal') {
+                    this.packGraphic.classList.add('deluxe');
+                    title.textContent = "DELUXE"; icon.textContent = "💎"; subtitle.textContent = "13 CARTAS PREMIUM";
+                }
+
+                setTimeout(() => {
+                    this.packGraphic.classList.add('opening');
+                    this.btnOpenPack.disabled = true;
+
+                    setTimeout(() => {
+                        this.generatePackContent(isDeluxe, activeType.id);
+                        this.packGraphic.style.display = 'none'; 
+                        this.revealArea.style.display = 'block'; 
+                        this.packGraphic.classList.remove('opening');
+                    }, 1000);
+                }, isDeluxe && gameState.customPackQueue.length === 0 ? 800 : 0);
+            },
+
+            generatePackContent(isDeluxe, packType) {
+                gameState.openedPackCards = [];
+                this.revealGrid.innerHTML = '';
+                let limit = isDeluxe ? 13 : (packType === 'normal' ? 5 : 3);
+
+                if (gameState.customPackQueue.length > 0) {
+                    gameState.openedPackCards = [...gameState.customPackQueue];
+                    gameState.customPackQueue = [];
+                } else {
+                    for(let i=0; i<limit; i++) {
+                        let pool = db;
+                        if (packType === 'cc') pool = db.filter(c => c.countryCode.startsWith('CC'));
+                        else if (packType === 'mcd') pool = db.filter(c => c.countryCode === 'MCD');
+                        else pool = db.filter(c => !c.countryCode.startsWith('CC') && c.countryCode !== 'MCD' && c.group !== 'ACHIEVEMENT');
+
+                        let randomId;
+                        
+                        // Lógica McDonald's (1 carta oro garantizada en el índice 0)
+                        if (packType === 'mcd' && i === 0) {
+                            const premiums = pool.filter(c => c.isPremium);
+                            randomId = premiums[Math.floor(Math.random() * premiums.length)].id;
+                        } else if (isDeluxe && i < 3) {
+                            const premiums = pool.filter(c => c.isPremium);
+                            randomId = premiums[Math.floor(Math.random() * premiums.length)].id;
+                        } else {
+                            if (Math.random() < 0.08) {
+                                const premiums = pool.filter(c => c.isPremium);
+                                randomId = premiums[Math.floor(Math.random() * premiums.length)].id;
+                            } else {
+                                const normals = pool.filter(c => !c.isPremium);
+                                randomId = normals[Math.floor(Math.random() * normals.length)].id;
+                            }
+                        }
+                        gameState.openedPackCards.push(db.find(c => c.id === randomId));
+                    }
+                }
+
+                gameState.openedPackCards.forEach((card, i) => {
+                    setTimeout(() => {
+                        const cardEl = document.createElement('div');
+                        cardEl.className = 'revealed-sticker';
+                        cardEl.innerHTML = this.createStickerHTML(card, true); 
+                        this.revealGrid.appendChild(cardEl);
+                    }, i * 150);
+                });
+            },
+
+            saveOpenedPack() {
+                let newCount = 0, repCount = 0;
+                gameState.openedPackCards.forEach(card => {
+                    if (gameState.album.includes(card.id) || gameState.inventario.includes(card.id) || gameState.repetidos.includes(card.id)) {
+                        gameState.repetidos.push(card.id); repCount++;
+                    } else {
+                        gameState.inventario.push(card.id); newCount++;
+                    }
+                    if(['Lionel Messi', 'Cristiano Ronaldo'].includes(card.name) && !gameState.album.includes(card.id)) {
+                        gameState.monedas += 100; // Bonus por suerte
+                        this.showMessage(`¡Has sacado a ${card.name}! +100 Monedas de bonus.`);
+                    }
+                });
+
+                if(newCount > 0 || repCount > 0) this.showMessage(`Añadidos: ${newCount} Nuevos, ${repCount} Repetidos.`);
+                
+                gameState.openedPackCards = [];
+                this.revealArea.style.display = 'none';
+                this.packGraphic.style.display = 'flex';
+                this.updateUI();
+            },
+
+            renderInventory() {
+                this.pilaGrid.innerHTML = '';
+                if (gameState.inventario.length === 0) {
+                    this.pilaGrid.innerHTML = '<div class="empty-state">No tienes cromos sin pegar. ¡Abre más sobres!</div>';
+                    return;
+                }
+                const sortedInv = [...gameState.inventario].sort((a,b) => a - b);
+                sortedInv.forEach(id => {
+                    const el = document.createElement('div'); el.className = 'inventory-item';
+                    el.innerHTML = this.createStickerHTML(db.find(c => c.id === id), true);
+                    el.onclick = () => {
+                        const card = db.find(c => c.id === id);
+                        gameState.pendingPasteId = id;
+                        this.switchView('album-view');
+                        gameState.currentTeamIndex = TEAMS.findIndex(t => t.code === card.countryCode);
+                        this.renderAlbum();
+                        this.showMessage(`Haz clic en el recuadro con el signo + dorado para pegar a ${card.name}`);
+                    };
+                    this.pilaGrid.appendChild(el);
+                });
+            },
+
+            renderTrade() {
+                this.tradeGrid.innerHTML = '';
+                this.renderSpecialTrades();
+
+                if (gameState.repetidos.length === 0) {
+                    this.tradeGrid.innerHTML = '<div class="empty-state">No tienes cromos repetidos para intercambiar.</div>';
+                    this.btnExecuteTrade.disabled = true; this.btnTradeAll.disabled = true;
+                    this.tradeSelectedName.textContent = 'Ninguno';
+                    return;
+                }
+
+                this.btnTradeAll.disabled = false; 
+                gameState.repetidos.forEach((id) => {
+                    const el = document.createElement('div');
+                    el.className = `inventory-item ${gameState.tradeSelectedId === id ? 'selected-for-trade' : ''}`;
+                    el.innerHTML = this.createStickerHTML(db.find(c => c.id === id), true);
+                    el.onclick = () => { gameState.tradeSelectedId = id; this.renderTrade(); };
+                    this.tradeGrid.appendChild(el);
+                });
+
+                if (gameState.tradeSelectedId) {
+                    const sCard = db.find(c => c.id === gameState.tradeSelectedId);
+                    this.tradeSelectedName.textContent = `${sCard.countryCode} ${sCard.indexInTeam} - ${sCard.name} ${sCard.isPremium?'⭐':''}`;
+                    this.btnExecuteTrade.disabled = false;
+                    this.btnSellCard.disabled = false;
+                } else {
+                    this.tradeSelectedName.textContent = 'Ninguno';
+                    this.btnExecuteTrade.disabled = true;
+                    this.btnSellCard.disabled = true;
+                }
+            },
+
+            sellSelectedCard() {
+                if (!gameState.tradeSelectedId) return;
+                const idx = gameState.repetidos.indexOf(gameState.tradeSelectedId);
+                if (idx > -1) gameState.repetidos.splice(idx, 1);
+                
+                const card = db.find(c => c.id === gameState.tradeSelectedId);
+                const reward = card.isPremium ? 50 : 10;
+                gameState.monedas += reward;
+                
+                gameState.tradeSelectedId = null;
+                this.updateUI(); this.renderTrade();
+                this.showMessage(`Carta vendida por ${reward} monedas.`);
+            },
+
+            getMissingIds() { return db.filter(c => c.group !== 'ACHIEVEMENT').map(c=>c.id).filter(id => !gameState.album.includes(id) && !gameState.inventario.includes(id)); },
+
+            executeTrade() {
+                if (!gameState.tradeSelectedId) return;
+                const missingIds = this.getMissingIds();
+                if (missingIds.length === 0) { this.showMessage('¡No te falta ningún cromo!', true); return; }
+
+                const idx = gameState.repetidos.indexOf(gameState.tradeSelectedId);
+                if (idx > -1) gameState.repetidos.splice(idx, 1);
+
+                const sCard = db.find(c => c.id === gameState.tradeSelectedId);
+                let rewardId;
+
+                // LÓGICA: Valiosa por Valiosa
+                if (sCard.isPremium) {
+                    const missingPremiums = missingIds.filter(id => db.find(c => c.id === id).isPremium);
+                    if (missingPremiums.length > 0) {
+                        rewardId = missingPremiums[Math.floor(Math.random() * missingPremiums.length)];
+                    } else {
+                        // Si no faltan valiosas, da monedas + normal
+                        gameState.monedas += 300;
+                        this.showMessage("No te faltan cartas valiosas. Recibes 300 monedas y una normal.", false);
+                        rewardId = missingIds[Math.floor(Math.random() * missingIds.length)];
+                    }
+                } else {
+                    const missingNormals = missingIds.filter(id => !db.find(c => c.id === id).isPremium);
+                    if (missingNormals.length > 0 && Math.random() > 0.05) { // 5% chance of upgrade
+                        rewardId = missingNormals[Math.floor(Math.random() * missingNormals.length)];
+                    } else {
+                        rewardId = missingIds[Math.floor(Math.random() * missingIds.length)];
+                    }
+                }
+
+                gameState.inventario.push(rewardId);
+                const rCard = db.find(c => c.id === rewardId);
+                gameState.tradeSelectedId = null;
+                this.updateUI(); this.renderTrade();
+                this.showMessage(`¡Éxito! Has recibido: ${rCard.name} ${rCard.isPremium?'⭐':''}`);
+            },
+
+            executeTradeAll() {
+                const missingIds = this.getMissingIds();
+                if (missingIds.length === 0 || gameState.repetidos.length === 0) return;
+
+                let tradesDone = 0;
+                while (gameState.repetidos.length > 0 && missingIds.length > 0) {
+                    const offerId = gameState.repetidos.pop();
+                    const offerCard = db.find(c => c.id === offerId);
+                    
+                    let candIds = missingIds;
+                    if(offerCard.isPremium) {
+                        const mPrem = missingIds.filter(id => db.find(c=>c.id===id).isPremium);
+                        if(mPrem.length > 0) candIds = mPrem;
+                    } else {
+                        const mNorm = missingIds.filter(id => !db.find(c=>c.id===id).isPremium);
+                        if(mNorm.length > 0) candIds = mNorm;
+                    }
+
+                    const rIdx = Math.floor(Math.random() * candIds.length);
+                    const newId = candIds[rIdx];
+                    missingIds.splice(missingIds.indexOf(newId), 1); // remove from missing
+                    gameState.inventario.push(newId);
+                    tradesDone++;
+                }
+
+                gameState.tradeSelectedId = null;
+                this.updateUI(); this.renderTrade();
+                this.showMessage(`¡Intercambio Masivo Completado! Has recibido ${tradesDone} cromos.`);
+            },
+
+            renderShop() {
+                const grid = document.getElementById('shop-grid');
+                grid.innerHTML = SHOP_ITEMS.map(item => `
+                    <div class="shop-item">
+                        <div class="shop-icon">${item.icon}</div>
+                        <div class="shop-title">${item.name}</div>
+                        <div class="shop-price">🪙 ${item.price}</div>
+                        <button class="btn-action" style="font-size: 0.9rem; padding: 10px;" onclick="app.buyItem('${item.id}')">Comprar</button>
+                    </div>
+                `).join('');
+            },
+
+            buyItem(itemId) {
+                const item = SHOP_ITEMS.find(i => i.id === itemId);
+                if (gameState.monedas >= item.price) {
+                    gameState.monedas -= item.price;
+                    if (item.type === 'packs') {
+                        gameState.sobresDisponibles += item.value;
+                        this.showMessage(`¡Has comprado ${item.name}!`);
+                    } else if (item.type === 'packCC') {
+                        gameState.sobresCocaCola += item.value;
+                        this.showMessage(`¡Has comprado ${item.name}!`);
+                    } else if (item.type === 'packMCD') {
+                        gameState.sobresMcDonalds += item.value;
+                        this.showMessage(`¡Has comprado ${item.name}!`);
+                    } else if (item.type === 'item') {
+                        gameState.items[itemId]++;
+                        this.showMessage(`¡Has adquirido: ${item.name}! Revisa tus Trofeos.`);
+                    }
+                    this.updateUI();
+                } else {
+                    this.showMessage(`No tienes suficientes monedas. Necesitas ${item.price}.`, true);
+                }
+            },
+
+            renderSpecialTrades() {
+                this.specialTradeGrid.innerHTML = '';
+                let hasSpecials = false;
+                
+                const addBtn = (name, icon, count, tradeText, action) => {
+                    hasSpecials = true;
+                    this.specialTradeGrid.innerHTML += `
+                        <button class="special-trade-btn" onclick="${action}">
+                            <span style="font-size: 1.5rem;">${icon}</span>
+                            <div style="text-align: left;">
+                                <div style="font-size: 0.8rem;">${name} (Tienes: ${count})</div>
+                                <div style="color: #666; font-size: 0.75rem;">Canjear por: ${tradeText}</div>
+                            </div>
+                        </button>
+                    `;
+                };
+
+                if (gameState.items.balonOro > 0) addBtn('Balón de Oro', '⚽', gameState.items.balonOro, '30 Cartas Faltantes', "app.tradeObject('balonOro', 30)");
+                if (gameState.items.botaOro > 0) addBtn('Bota de Oro', '👟', gameState.items.botaOro, '20 Cartas Faltantes', "app.tradeObject('botaOro', 20)");
+                if (gameState.items.guanteOro > 0) addBtn('Guante de Oro', '🧤', gameState.items.guanteOro, '13 Cartas Faltantes', "app.tradeObject('guanteOro', 13)");
+                
+                ['MEX', 'ARG', 'POR', 'FRA', 'BRA'].forEach(cc => {
+                    const key = `jersey${cc}`;
+                    if (gameState.items[key] > 0) {
+                        addBtn(`Camiseta ${cc}`, '👕', gameState.items[key], '10 Cartas Faltantes', `app.tradeObject('${key}', 10)`);
+                    }
+                });
+
+                this.specialTradeContainer.style.display = hasSpecials ? 'block' : 'none';
+            },
+
+            tradeObject(key, numCards) {
+                if (gameState.items[key] > 0) {
+                    const missing = this.getMissingIds();
+                    if(missing.length === 0) { this.showMessage("Álbum completo. No puedes cambiar más."); return; }
+                    
+                    gameState.items[key]--;
+                    let given = 0;
+                    for(let i=0; i<numCards; i++) {
+                        const m = this.getMissingIds();
+                        if(m.length === 0) break;
+                        const rId = m[Math.floor(Math.random() * m.length)];
+                        gameState.inventario.push(rId);
+                        given++;
+                    }
+                    this.updateUI();
+                    this.renderTrade();
+                    this.showMessage(`¡Objeto canjeado! Recibiste ${given} cartas faltantes en Mis Cromos.`);
+                }
+            },
+
+            renderTrophies() {
+                const grid = document.getElementById('trophies-grid');
+                const showcase = document.getElementById('world-cup-showcase');
+                grid.innerHTML = ''; showcase.innerHTML = '';
+
+                if (gameState.items.copaMundial > 0) {
+                    showcase.innerHTML = `
+                        <div class="world-cup-trophy">
+                            <div class="trophy-icon">🏆</div>
+                            <div class="trophy-title">COPA DEL MUNDO 2026</div>
+                            <p style="font-weight:bold;">Otorgada por completar el álbum al 100%.</p>
+                            <button class="btn-sell" style="max-width: 200px; margin: 15px auto 0;" onclick="app.sellTrophy('copaMundial', 10000)">Vender por 10,000 🪙</button>
+                        </div>
+                    `;
+                }
+
+                SHOP_ITEMS.filter(i => i.type === 'item').forEach(item => {
+                    if (gameState.items[item.id] > 0) {
+                        const sellPrice = Math.floor(item.price * 0.7); // Vender por el 70% del valor
+                        grid.innerHTML += `
+                            <div class="trophy-item">
+                                <div class="trophy-icon">${item.icon}</div>
+                                <div class="trophy-title">${item.name}</div>
+                                <div class="trophy-count" style="margin-bottom: 10px;">x${gameState.items[item.id]}</div>
+                                <button class="btn-sell" onclick="app.sellTrophy('${item.id}', ${sellPrice})">Vender por ${sellPrice} 🪙</button>
+                            </div>
+                        `;
+                    }
+                });
+
+                if (grid.innerHTML === '' && showcase.innerHTML === '') {
+                    grid.innerHTML = '<div class="empty-state">Aún no tienes trofeos ni objetos especiales. Visita la Tienda.</div>';
+                }
+            },
+
+            sellTrophy(id, price) {
+                if (gameState.items[id] > 0) {
+                    gameState.items[id]--;
+                    gameState.monedas += price;
+                    this.updateUI();
+                    this.renderTrophies();
+                    this.showMessage(`Trofeo vendido. Has recibido ${price} monedas.`);
+                }
+            },
+
+            redeemCode() {
+                const code = this.promoInput.value.trim().toUpperCase();
+                if (!code) return;
+                if (VALID_CODES.includes(code)) {
+                    if (gameState.codigosUsados.includes(code)) {
+                        this.showMessage('Ya has utilizado este código.', true);
+                    } else {
+                        gameState.codigosUsados.push(code);
+                        gameState.sobresDisponibles += 3;
+                        this.updateUI();
+                        this.showMessage('¡Código válido! +3 sobres.');
+                        this.promoInput.value = '';
+                    }
+                } else { this.showMessage('Código inválido.', true); }
+            }
+        };
+
+        window.addEventListener('resize', () => { if(document.getElementById('album-view').classList.contains('active')) app.renderAlbum(); });
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>

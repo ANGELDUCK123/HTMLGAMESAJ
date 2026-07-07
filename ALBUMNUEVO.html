@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundial 2026 - Álbum Digital Panini</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,900&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* ================= VARIABLES OFICIALES 2026 ================= */
+        :root {
+            --fifa-magenta: #E6005C;
+            --fifa-purple: #3A0033;
+            --fifa-dark-purple: #24001F;
+            --fifa-neon-green: #00F076;
+            --fifa-cyan: #00D4FF;
+            --gold: #D4AF37;
+            --gold-light: #FDF3CD;
+            --white: #FFFFFF;
+            --gray-light: #F0F0F0;
+            --gray-dark: #222222;
+            --bg-body: #110010;
+            --font-main: 'Poppins', sans-serif;
+            --font-title: 'Montserrat', sans-serif;
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.5);
+            --transition: all 0.3s ease;
+        }
+
+        /* ================= RESET Y BASE ================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: radial-gradient(circle at 50% 0%, var(--fifa-purple) 0%, var(--fifa-dark-purple) 100%);
+            background-attachment: fixed;
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ================= CUSTOM MESSAGE BOX ================= */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--fifa-neon-green);
+            color: var(--fifa-dark-purple);
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-weight: 800;
+            z-index: 10000;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-align: center;
+        }
+        #message-box.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        #message-box.error {
+            background: #FF3B30;
+            color: white;
+        }
+
+        /* ================= HEADER ================= */
+        header {
+            background: rgba(36, 0, 31, 0.9);
+            backdrop-filter: blur(10px);
+            color: var(--white);
+            padding: 15px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--fifa-magenta);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-title);
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: var(--white);
+            letter-spacing: -1px;
+        }
+        .logo span { color: var(--fifa-neon-green); }
+
+        .global-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+        }
+
+        .progress-bar-bg {
+            width: 150px;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--fifa-magenta), var(--fifa-cyan));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .pack-counter {
+            background: var(--fifa-neon-green);
+            color: var(--fifa-dark-purple);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ================= NAVEGACIÓN ================= */
+        nav {
+            background: var(--fifa-magenta);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .nav-btn {
+            padding: 15px 25px;
+            border: none;
+            background: none;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            position: relative;
+            transition: var(--transition);
+            text-transform: uppercase;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            color: var(--white);
+            font-weight: 800;
+        }
+
+        .nav-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--fifa-neon-green);
+        }
+
+        /* ================= VISTAS MAIN ================= */
+        main {
+            flex: 1;
+            padding: 30px 5%;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        .view {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            animation: fadeIn 0.4s ease;
+        }
+        .view.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ================= VISTA 1: ÁLBUM (2 PÁGINAS) ================= */
+        .album-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .album-controls {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1000px;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 30px;
+        }
+
+        .btn-nav-album {
+            background: var(--fifa-magenta);
+            color: var(--white);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+        .btn-nav-album:hover:not(:disabled) { background: var(--fifa-cyan); color: var(--fifa-dark-purple); }
+        .btn-nav-album:disabled { background: #555; cursor: not-allowed; opacity: 0.5; }
+
+        .book {
+            display: flex;
+            background: transparent;
+            width: 100%;
+            max-width: 1100px;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            border-radius: 10px;
+        }
+
+        .page {
+            width: 50%;
+            background: var(--white);
+            min-height: 600px;
+            position: relative;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            color: var(--gray-dark);
+            overflow: hidden;
+        }
+
+        .page::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" fill="rgba(230,0,92,0.05)"/></svg>');
+            background-size: 150px 150px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .page-left {
+            border-radius: 10px 0 0 10px;
+            border-right: 1px solid #ccc;
+            box-shadow: inset -15px 0 15px -10px rgba(0,0,0,0.2);
+        }
+        .page-right {
+            border-radius: 0 10px 10px 0;
+            box-shadow: inset 15px 0 15px -10px rgba(0,0,0,0.2);
+        }
+
+        .page-content {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .we-are-header {
+            font-family: var(--font-title);
+            font-weight: 900;
+            font-size: 2.2rem;
+            line-height: 1;
+            text-transform: uppercase;
+            color: var(--fifa-magenta);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .we-are-header span { color: var(--fifa-purple); display: block; font-size: 2.5rem; }
+
+        .grid-left {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .slot-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #slot-0 { grid-column: 1; grid-row: 1 / span 2; }
+        #slot-1 { grid-column: 2; grid-row: 1; }
+        #slot-2 { grid-column: 3; grid-row: 1; }
+        #slot-3 { grid-column: 2; grid-row: 2; }
+        #slot-4 { grid-column: 3; grid-row: 2; }
+
+        .grid-right {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .group-box {
+            grid-column: 1 / span 2;
+            background: var(--fifa-purple);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .group-box h3 {
+            font-family: var(--font-title);
+            font-weight: 900;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--fifa-neon-green);
+        }
+        .group-flags {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .flag-item {
+            background: white;
+            color: var(--fifa-dark-purple);
+            font-weight: 800;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            border-left: 5px solid var(--fifa-magenta);
+        }
+
+        /* ================= CROMOS (STICKERS) ================= */
+        .slot {
+            width: 100%;
+            max-width: 140px;
+            aspect-ratio: 0.72 / 1;
+            background: #f8f8f8;
+            border: 2px dashed #bbb;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #ccc;
+            font-family: var(--font-title);
+        }
+        .slot-country { font-size: 0.9rem; color: #999; margin-bottom: 5px; }
+
+        .sticker-card {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #FFFFFF 60%, var(--fifa-neon-green) 100%);
+            border-radius: 6px;
+            border: 2px solid var(--gray-dark);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-md);
+            position: relative; 
+            animation: pasteSticker 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            overflow: hidden;
+            font-family: var(--font-main);
+        }
+
+        @keyframes pasteSticker {
+            0% { transform: scale(1.3) rotate(5deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .sticker-card .id-badge {
+            background: var(--gray-dark);
+            color: var(--white);
+            font-size: 0.7rem;
+            padding: 3px 6px;
+            position: absolute;
+            top: 5px; right: 5px;
+            border-radius: 4px;
+            font-weight: 800;
+        }
+
+        .sticker-card .art {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: rgba(0,0,0,0.1);
+        }
+
+        .sticker-card .info {
+            background: var(--fifa-dark-purple);
+            color: var(--white);
+            text-align: center;
+            padding: 6px;
+            font-size: 0.7rem;
+            border-top: 2px solid var(--fifa-neon-green);
+        }
+
+        .sticker-card .info strong {
+            display: block;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .sticker-card.shield {
+    /* Cambiamos el dorado por una combinación morado-granate */
+    border: 3px solid #8A1538; /* Color representativo de Qatar */
+    background: linear-gradient(135deg, #3A0033 0%, #8A1538 100%);
+}
+.sticker-card.shield .info {
+    /* El pie de la tarjeta ahora será morado con texto blanco */
+    background: #3A0033;
+    color: #FFFFFF;
+    border-top: 2px solid #8A1538;
+}
+        /* Estilo especial para cartas doradas */
+.sticker-card.golden {
+    border: 3px solid #D4AF37;
+    background: linear-gradient(135deg, #FFD700 0%, #B8860B 50%, #5D4037 100%);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
+    color: #3A0033;
+}
+
+/* Efecto de brillo sutil */
+.sticker-card.golden::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(to bottom right, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(255,255,255,0.1) 100%);
+    transform: rotate(30deg);
+    pointer-events: none;
+}
+
+        .btn-add-sticker {
+            background: var(--fifa-magenta);
+            color: white;
+            border: none;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            position: absolute;
+            z-index: 10;
+        }
+        .btn-add-sticker:hover { transform: scale(1.15); background: var(--fifa-neon-green); color: var(--fifa-dark-purple); }
+        .slot.glow-gold { border-color: var(--fifa-magenta); background: rgba(230,0,92,0.1); }
+
+        /* ================= VISTAS DE INVENTARIO ================= */
+        .inventory-section {
+            background: var(--white);
+            color: var(--gray-dark);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+        }
+
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--gray-light);
+            padding-bottom: 10px;
+        }
+        .inventory-header h2 { font-family: var(--font-title); color: var(--fifa-purple); font-weight: 900; }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 15px;
+            min-height: 300px;
+        }
+
+        .inventory-item {
+            aspect-ratio: 0.72 / 1;
+            position: relative;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .inventory-item:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
+        .selected-for-trade { border: 4px solid var(--fifa-neon-green); border-radius: 8px; transform: scale(1.05); }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 50px 0;
+            font-size: 1.1rem;
+        }
+
+        .trade-controls {
+            background: var(--fifa-purple);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .btn-action {
+            background: var(--fifa-magenta);
+            color: var(--white);
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: 30px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+        }
+        .btn-action:hover:not(:disabled) { background: var(--fifa-neon-green); color: var(--fifa-dark-purple); }
+        .btn-action:disabled { background: #555; color: #999; cursor: not-allowed; }
+        .btn-trade-all { background: var(--fifa-cyan); color: var(--fifa-dark-purple); }
+
+        /* ================= ABRIR SOBRES ================= */
+        .packs-container {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            width: 100%;
+        }
+
+        .pack-graphic {
+            width: 220px;
+            height: 300px;
+            background: linear-gradient(135deg, var(--fifa-magenta) 0%, #8A0038 100%);
+            border: 5px solid var(--white);
+            border-radius: 15px;
+            margin: 30px auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--white);
+            box-shadow: 0 0 30px rgba(230,0,92,0.5);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .pack-graphic::after {
+            content: 'PANINI';
+            position: absolute; top: 10px; font-weight: 900; letter-spacing: 3px; font-size: 0.8rem;
+        }
+        .pack-graphic h3 { font-family: var(--font-title); font-size: 2.5rem; font-weight: 900; }
+        .pack-graphic:hover { transform: scale(1.05); }
+        
+        .pack-graphic.opening {
+            animation: shakePack 0.5s ease-in-out, fadeOutUp 0.5s 0.5s forwards;
+            pointer-events: none;
+        }
+
+        /* DELUXE PACK ESTILO NEGRO Y DORADO */
+        .pack-graphic.deluxe {
+            background: linear-gradient(135deg, #111111 0%, #333333 100%);
+            border: 5px solid var(--gold);
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
+            color: var(--gold);
+        }
+        .pack-graphic.deluxe::after { color: var(--gold); }
+        .pack-graphic.deluxe h3 { color: var(--gold); }
+
+        @keyframes shakePack {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            50% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+            100% { transform: rotate(0deg); }
+        }
+        @keyframes fadeOutUp { to { opacity: 0; transform: translateY(-100px) scale(0.8); } }
+
+        .reveal-area { display: none; margin-top: 30px; width: 100%; }
+        .reveal-grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .revealed-sticker { width: 160px; height: 222px; position: relative; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; transform: scale(0.5); }
+        
+        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+
+        .timer-display-box {
+            font-size: 1.1rem;
+            color: var(--fifa-cyan);
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        /* ================= CÓDIGOS ================= */
+        .codes-container {
+            background: var(--white);
+            color: var(--gray-dark);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-lg);
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .codes-container h2 { font-family: var(--font-title); color: var(--fifa-purple); font-weight: 900; margin-bottom: 10px;}
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .input-group input {
+            flex: 1; padding: 15px 20px; font-size: 1.2rem;
+            border: 2px solid #ccc; border-radius: 30px; outline: none;
+            text-transform: uppercase; font-family: inherit; font-weight: bold;
+        }
+        .input-group input:focus { border-color: var(--fifa-magenta); }
+
+        /* ================= BOTÓN DE AJUSTES ================= */
+        .settings-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--fifa-purple);
+            border: 2px solid var(--fifa-neon-green);
+            color: var(--fifa-neon-green);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+        }
+        .settings-btn:hover {
+            transform: rotate(90deg) scale(1.1);
+            background: var(--fifa-neon-green);
+            color: var(--fifa-purple);
+        }
+
+        /* ================= MODALES ================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 9990;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        
+        .modal-content {
+            background: var(--white);
+            color: var(--gray-dark);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            box-shadow: var(--shadow-lg);
+            animation: popIn 0.3s ease-out;
+        }
+        .modal-content h2 { color: var(--fifa-purple); font-family: var(--font-title); font-weight: 900; margin-bottom: 20px; }
+        
+        .btn-modal {
+            background: var(--gray-light);
+            border: 2px solid #ddd;
+            padding: 15px;
+            width: 100%;
+            font-size: 1rem;
+            font-weight: 800;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-modal:hover { background: var(--fifa-cyan); border-color: var(--fifa-cyan); color: var(--fifa-dark-purple); }
+
+        .btn-close-modal {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888;
+        }
+        .btn-back-modal {
+            background: none; border: none; font-size: 1rem; cursor: pointer; color: var(--fifa-magenta); font-weight: bold; display: flex; align-items: center; margin-bottom: 15px;
+        }
+
+        .codes-list {
+            background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 15px; max-height: 200px; overflow-y: auto; text-align: left;
+        }
+        .codes-list p { margin-bottom: 5px; font-family: monospace; font-size: 1.1rem; color: var(--fifa-magenta); font-weight: bold; }
+
+        /* COMANDOS MODAL CUSTOM STYLES */
+        .command-section {
+            background: #f4f4f4; padding: 15px; border-radius: 10px; margin-bottom: 15px;
+        }
+        .command-section select, .command-section input {
+            width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; font-family: inherit;
+        }
+        .custom-cards-list {
+            display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px;
+        }
+        .custom-card-badge {
+            background: var(--fifa-purple); color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.8rem;
+        }
+
+        /* ================= RESPONSIVE ================= */
+        @media (max-width: 900px) {
+            .book { flex-direction: column; }
+            .page { width: 100%; min-height: auto; padding: 20px; border-radius: 10px !important; }
+            .page-right { display: none; }
+            nav { padding: 5px; }
+            .nav-btn { padding: 10px; font-size: 0.8rem; }
+            header { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="message-box">Mensaje del sistema</div>
+
+    <header>
+        <div class="logo">
+            <span>⚽</span> FIFA WORLD CUP <span>2026</span>
+        </div>
+        <div class="global-stats">
+            <div class="progress-container">
+                <span>Progreso:</span>
+                <div class="progress-bar-bg">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <span id="progress-text" style="font-weight: 800; color: var(--fifa-neon-green);">0%</span>
+            </div>
+            <div class="pack-counter" title="Sobres Disponibles">
+                📦 x <span id="header-pack-count">5</span>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <button class="nav-btn active" data-target="album-view">Mi Álbum</button>
+        <button class="nav-btn" data-target="packs-view">Abrir Sobres</button>
+        <button class="nav-btn" data-target="paste-view">Mis Cromos (<span id="nav-pila-count">0</span>)</button>
+        <button class="nav-btn" data-target="trade-view">Intercambio (<span id="nav-trade-count">0</span>)</button>
+        <button class="nav-btn" data-target="codes-view">Códigos</button>
+    </nav>
+
+    <main>
+        
+        <!-- VISTA 1: ÁLBUM -->
+        <section id="album-view" class="view active">
+            <div class="album-container">
+                <div class="album-controls">
+                    <button class="btn-nav-album" id="btn-prev">← Equipo Anterior</button>
+                    <span id="page-indicator" style="font-weight: 800; font-size: 1.2rem; color: white; text-transform: uppercase;">MÉXICO</span>
+                    <button class="btn-nav-album" id="btn-next">Siguiente Equipo →</button>
+                </div>
+                
+                <div class="book" id="book-container">
+                    <div class="page page-left" id="page-left"></div>
+                    <div class="page page-right" id="page-right"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 2: ABRIR SOBRES -->
+        <section id="packs-view" class="view">
+            <div class="packs-container">
+                <h2 style="font-family: var(--font-title); font-weight: 900; font-size: 2rem; margin-bottom: 10px;">¡ABRE TUS SOBRES!</h2>
+                <p>Tienes <strong id="main-pack-count" style="color: var(--fifa-neon-green); font-size: 1.5rem;">5</strong> sobres disponibles.</p>
+                
+                <!-- TEMPORIZADOR AÑADIDO -->
+                <div class="timer-display-box">
+                    🕒 3 sobres gratis en: <span id="timer-display">03:00</span>
+                </div>
+                
+                <div class="pack-graphic" id="pack-graphic" onclick="app.openPack()">
+                    <h3 id="pack-title">2026</h3>
+                    <div id="pack-icon" style="font-size: 3rem; margin-top: 10px;">🌟</div>
+                    <div id="pack-subtitle" style="margin-top: auto; margin-bottom: 20px; font-weight: 800; font-size: 1.2rem;">5 CROMOS</div>
+                </div>
+
+                <button class="btn-action" id="btn-open-pack" onclick="app.openPack()">Rasgar Sobre</button>
+
+                <div class="reveal-area" id="reveal-area">
+                    <h3 style="font-family: var(--font-title); font-size: 1.8rem; margin-bottom: 20px; color: var(--fifa-neon-green);">¡Nuevos Cromos Obtenidos!</h3>
+                    <div class="reveal-grid" id="reveal-grid"></div>
+                    <button class="btn-action" onclick="app.saveOpenedPack()">Añadir a mi colección</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 3: MIS CROMOS -->
+        <section id="paste-view" class="view">
+            <div class="inventory-section">
+                <div class="inventory-header">
+                    <h2>MIS CROMOS</h2>
+                    <p>Haz clic en un cromo para ir automáticamente a su página y pegarlo en el álbum.</p>
+                </div>
+                <div class="inventory-grid" id="pila-grid"></div>
+            </div>
+        </section>
+
+        <!-- VISTA 4: INTERCAMBIO -->
+        <section id="trade-view" class="view">
+            <div class="inventory-section">
+                <div class="inventory-header">
+                    <h2>MERCADO DE INTERCAMBIO</h2>
+                    <p>Selecciona un cromo repetido para cambiarlo o usa el intercambio masivo.</p>
+                </div>
+                <div class="inventory-grid" id="trade-grid"></div>
+
+                <div class="trade-controls" id="trade-controls">
+                    <div>
+                        <strong>Cromo a ofertar:</strong> <span id="trade-selected-name" style="color: var(--fifa-neon-green); font-weight: bold;">Ninguno</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-action" id="btn-execute-trade" onclick="app.executeTrade()" disabled>Intercambiar</button>
+                        <button class="btn-action btn-trade-all" id="btn-trade-all" onclick="app.executeTradeAll()">Intercambiar Todas</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VISTA 5: CÓDIGOS -->
+        <section id="codes-view" class="view">
+            <div class="codes-container">
+                <h2>CÓDIGOS PROMOCIONALES</h2>
+                <p style="margin-bottom: 20px;">Introduce un código para ganar sobres extra gratuitos.</p>
+                
+                <div class="input-group">
+                    <input type="text" id="promo-code-input" placeholder="Ej: PANINI2026">
+                    <button class="btn-action" onclick="app.redeemCode()">Canjear</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- BOTÓN DE AJUSTES FLOTANTE -->
+        <div class="settings-btn" onclick="app.openModal('settings-modal')" title="Ajustes">⚙️</div>
+
+    </main>
+
+    <!-- MODAL: AJUSTES -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-content">
+            <button class="btn-close-modal" onclick="app.closeModal('settings-modal')">✖</button>
+            <h2>AJUSTES</h2>
+            <button class="btn-modal" onclick="app.activateCommands()">FIFA</button>
+            <button class="btn-modal" onclick="app.openAllCodesModal()">Conseguir todos los códigos</button>
+        </div>
+    </div>
+
+    <!-- MODAL: TODOS LOS CÓDIGOS -->
+    <div class="modal-overlay" id="codes-modal">
+        <div class="modal-content">
+            <button class="btn-back-modal" onclick="app.closeModal('codes-modal'); app.openModal('settings-modal')">← Regresar a Ajustes</button>
+            <h2>LISTA DE CÓDIGOS</h2>
+            <div class="codes-list" id="all-codes-list">
+                <!-- Se inyecta dinámicamente -->
+            </div>
+            <button class="btn-action" style="width: 100%; margin-bottom: 10px;" onclick="app.copyAllCodes()">Copiar todos los códigos</button>
+        </div>
+    </div>
+
+    <!-- MODAL: COMANDOS (Interfaz Secreta) -->
+    <div class="modal-overlay" id="commands-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <button class="btn-close-modal" onclick="app.closeModal('commands-modal')">✖</button>
+            <h2 style="color: var(--fifa-neon-green);"><span style="color: #000;">💻</span> PANEL DE DESARROLLADOR</h2>
+            
+            <div class="command-section">
+                <h3 style="margin-bottom: 10px;">🛠️ Hacer tu propio sobre</h3>
+                <label>Tipo de Sobre:</label>
+                <select id="cmd-pack-type" onchange="app.updateCustomPackLimit()">
+                    <option value="5">Normal (5 Cartas)</option>
+                    <option value="13">Deluxe (13 Cartas chidas)</option>
+                </select>
+                
+                <label>Elige una carta:</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <select id="cmd-card-select" style="margin-bottom: 0;"></select>
+                    <button class="btn-action" style="padding: 10px;" onclick="app.addCustomCard()">Añadir</button>
+                </div>
+                
+                <div class="custom-cards-list" id="cmd-cards-list"></div>
+                <p style="font-size: 0.8rem; margin-bottom: 10px;">Cartas: <span id="cmd-pack-count">0</span> / <span id="cmd-pack-limit">5</span></p>
+                
+                <button class="btn-action btn-trade-all" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="app.saveCustomPack()">Guardar Sobre Personalizado</button>
+            </div>
+
+            <div class="command-section">
+                <h3 style="margin-bottom: 10px;">⏱️ Controlar tiempo de sobres gratis</h3>
+                <label>Tiempo en segundos (Ej. 180 = 3 min):</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="cmd-timer-input" value="180" min="1" style="margin-bottom: 0;">
+                    <button class="btn-action" style="padding: 10px;" onclick="app.saveTimerSettings()">Aplicar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // 1. BASE DE DATOS Y ESTADO GLOBAL
+        // =========================================================
+        const PLAYERS_PER_TEAM = 12; // 0 (Escudo) + 11 Jugadores
+        const VALID_CODES = ['MUNDIAL2026', 'PANINI2026', 'FIFA26', 'DELUXE26', 'MESSI', 'CRISTIANO', 'PANINIEXTRAS', 'SOBRESGRATIS', 'MEXICO26'];
+        
+        const GROUPS = {
+            'A': [
+                { code: 'MEX', name: 'México', isHost: true },
+                { code: 'RSA', name: 'South Africa' },
+                { code: 'KOR', name: 'Korea Replublic' },
+                { code: 'CZE', name: 'Czechia' }
+            ],
+            'B': [
+                { code: 'CAN', name: 'Canada' },
+                { code: 'BIH', name: 'Bosnia-Herzegovina' },
+                { code: 'QAT', name: 'Qatar' },
+                { code: 'SUI', name: 'Switzerland' }
+            ],
+            'C': [
+                { code: 'BRA', name: 'Brazil', isHost: true },
+                { code: 'MAR', name: 'Morocco' },
+                { code: 'HAI', name: 'Haiti' },
+                { code: 'SCO', name: 'Scotland' }
+            ],
+            'D': [
+                { code: 'USA', name: 'USA', },
+                { code: 'PAR', name: 'Paraguay' },
+                { code: 'AUS', name: 'Australia' },
+                { code: 'TUR', name: 'Turkiye' }
+            ],
+            'E': [
+                { code: 'GER', name: 'Germany', },
+                { code: 'CUW', name: 'Curaçao' },
+                { code: 'CIV', name: "Côte d'Ivoire" },
+                { code: 'ECU', name: 'Ecuador' }
+            ],
+            'F': [
+                { code: 'NED', name: 'Netherlands', },
+                { code: 'JPN', name: 'Japan' },
+                { code: 'SWE', name: 'Sweden' },
+                { code: 'TUN', name: 'Tunisia' }
+            ],
+            'G': [
+                { code: 'BEL', name: 'Belgium', },
+                { code: 'EGY', name: 'Egypt' },
+                { code: 'IRN', name: 'IR Iran' },
+                { code: 'NZL', name: 'NEW Zealand' }
+            ],
+            'H': [
+                { code: 'ESP', name: 'Spain', },
+                { code: 'CPV', name: 'Cabo Verde' },
+                { code: 'KSA', name: 'Saudi Arabia' },
+                { code: 'URU', name: 'Uruguay' }
+            ],
+            'I': [
+                { code: 'FRA', name: 'France', },
+                { code: 'SEN', name: 'Senegal' },
+                { code: 'IRQ', name: 'Iraq' },
+                { code: 'NOR', name: 'Norway' }
+            ],
+            'J': [
+                { code: 'ARG', name: 'Argentina', },
+                { code: 'ALG', name: 'Algeria' },
+                { code: 'AUT', name: 'Austria' },
+                { code: 'JOR', name: 'Jordan' }
+            ],
+            'K': [
+                { code: 'POR', name: 'Portugal', },
+                { code: 'COD', name: 'Congo DR' },
+                { code: 'UZB', name: 'Uzbekistan' },
+                { code: 'COL', name: 'Colombia' }
+            ],
+            'L': [
+                { code: 'ENG', name: 'England', },
+                { code: 'CRO', name: 'Croatia' },
+                { code: 'GHA', name: 'Ghana' },
+                { code: 'PAN', name: 'Panama' }
+            ]
+        };
+
+        const TEAMS = [];
+        Object.keys(GROUPS).forEach(groupName => {
+            GROUPS[groupName].forEach(team => {
+                TEAMS.push({ ...team, group: groupName });
+            });
+        });
+
+        const MEX_PLAYERS = ['Escudo Oficial', 'Luis Malagón', 'Johan Vásquez', 'César Montes', 'Jesús Gallardo', 'Israel Reyes', 'Edson Álvarez', 'Marcel Ruiz', 'Hirving Lozano', 'Raúl Jiménez', 'Alexis Vega', 'Roberto Alvarado'];
+ 
+        // NUEVA BASE DE DATOS DE JUGADORES
+// Lista de IDs o Nombres que quieres que sean dorados
+const GOLDEN_PLAYERS = [' Lionel Messi', 'Cristiano Ronaldo', 'Neymar Jr', 'Lamine Yamal', 'Erling Haaland', 'Vinícius Júnior', 'Kylian Mbappé', 'Jude Bellingham', 'Jamal Musiala', 'Rodri'];
+const PLAYERS_DB = {
+    'MEX': ['Escudo Oficial', 'Malagón', 'Johan', 'Montes', 'Gallardo', 'Reyes', 'Edson', 'Ruiz', 'Lozano', 'Raúl', 'Vega', 'Alvarado'],
+    'ARG': ['Escudo ARG', 'Dibu', 'Otamendi', 'Cuti', 'Tagliafico', 'Enzo', 'De Paul', 'Mac Allister', ' Lionel Messi', 'Di María', 'Julián', 'Lautaro'],
+    'ESP': ['Escudo ESP', 'Unai Simón', 'Carvajal', 'Le Normand', 'Laporte', 'Grimaldo', 'Rodri', 'Fabián', 'Pedri', 'Lamine Yamal', 'Morata', 'Williams'],
+    'POR': ['Escudo POR', 'Diogo Costa', 'Cancelo', 'Ruben Dias', 'Pepe', 'Palhinha', 'Vitinha', 'Bruno F.', 'Bernardo S.', 'Leao', 'Cristiano Ronaldo', 'Joao Felix'],
+    'FRA': ['Escudo FRA', 'Mike Maignan', 'William Saliba', 'Jules Koundé', 'Théo Hernández', 'Aurélien Tchouaméni', 'Eduardo Camavinga', 'Ousmane Dembélé', 'Kylian Mbappé', 'Bradley Barcola', 'Désiré Doué', 'Hugo Eketiké'],
+    'BRA': ['Escudo BRA', 'Alisson', 'Marquinhos', 'Éder Militão', 'Gabriel Magalhães', 'Casemiro', 'Bruno Guimarães', 'Vinícius Júnior', 'Rodrygo', 'Matheus Cunha', 'Raphinha', 'Estêvão'],
+    'ESP': ['Escudo ESP', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre2', 'nombre1', 'nombre2'],
+    // Agrega más países siguiendo este formato...
+};
+
+        const db = [];
+        let idCounter = 1;
+
+        TEAMS.forEach(team => {
+            for(let i=0; i < PLAYERS_PER_TEAM; i++) {
+                // Busca si el país existe en nuestra nueva base de datos, si no, usa el nombre por defecto
+                let pName = (PLAYERS_DB[team.code]) ? PLAYERS_DB[team.code][i] : (i === 0 ? `Escudo ${team.name}` : `Jugador ${i}`);
+                db.push({
+                    id: idCounter++,
+                    countryCode: team.code,
+                    countryName: team.name,
+                    group: team.group,
+                    indexInTeam: i,
+                    name: pName,
+                    type: i === 0 ? 'shield' : 'player',
+                    position: i === 0 ? 'ESC' : (i < 3 ? 'DEF' : (i < 8 ? 'MED' : 'DEL'))
+                });
+            }
+        });
+
+        const TOTAL_STICKERS = db.length;
+
+        // Estado Global
+        const gameState = {
+            album: [],             
+            inventario: [],        
+            repetidos: [],         
+            sobresDisponibles: 5,  
+            codigosUsados: [],
+            currentTeamIndex: 0,   
+            pendingPasteId: null,  
+            tradeSelectedId: null, 
+            openedPackCards: [],
+            // NUEVO: Temporizador
+            timerDuration: 180, // Segundos (3 mins)
+            currentTimer: 180,
+            // NUEVO: Comandos y Sobres Personalizados
+            comandosActivos: false,
+            customPackQueue: [],     // Cartas elegidas manualmente por el dev
+            customPackIsDeluxe: false
+        };
+
+        // =========================================================
+        // 2. CONTROLADOR PRINCIPAL (APP)
+        // =========================================================
+        const app = {
+            init() {
+                this.cacheDOM();
+                this.bindEvents();
+                this.startTimer();
+                this.populateCommandSelect();
+                this.updateUI();
+                this.renderAlbum();
+            },
+
+            cacheDOM() {
+                this.navBtns = document.querySelectorAll('.nav-btn');
+                this.views = document.querySelectorAll('.view');
+                this.headerPackCount = document.getElementById('header-pack-count');
+                this.progressFill = document.getElementById('progress-fill');
+                this.progressText = document.getElementById('progress-text');
+                this.navPilaCount = document.getElementById('nav-pila-count');
+                this.navTradeCount = document.getElementById('nav-trade-count');
+                
+                this.pageLeft = document.getElementById('page-left');
+                this.pageRight = document.getElementById('page-right');
+                this.btnPrev = document.getElementById('btn-prev');
+                this.btnNext = document.getElementById('btn-next');
+                this.pageIndicator = document.getElementById('page-indicator');
+                
+                this.mainPackCount = document.getElementById('main-pack-count');
+                this.packGraphic = document.getElementById('pack-graphic');
+                this.packTitle = document.getElementById('pack-title');
+                this.packIcon = document.getElementById('pack-icon');
+                this.packSubtitle = document.getElementById('pack-subtitle');
+
+                this.btnOpenPack = document.getElementById('btn-open-pack');
+                this.revealArea = document.getElementById('reveal-area');
+                this.revealGrid = document.getElementById('reveal-grid');
+                this.timerDisplay = document.getElementById('timer-display');
+                
+                this.pilaGrid = document.getElementById('pila-grid');
+                this.tradeGrid = document.getElementById('trade-grid');
+                this.tradeControls = document.getElementById('trade-controls');
+                this.tradeSelectedName = document.getElementById('trade-selected-name');
+                this.btnExecuteTrade = document.getElementById('btn-execute-trade');
+                this.btnTradeAll = document.getElementById('btn-trade-all');
+                
+                this.msgBox = document.getElementById('message-box');
+                this.promoInput = document.getElementById('promo-code-input');
+
+                // Elementos de los Modales
+                this.cmdCardSelect = document.getElementById('cmd-card-select');
+                this.cmdCardsList = document.getElementById('cmd-cards-list');
+                this.cmdPackType = document.getElementById('cmd-pack-type');
+                this.cmdPackLimit = document.getElementById('cmd-pack-limit');
+                this.cmdPackCount = document.getElementById('cmd-pack-count');
+                this.cmdTimerInput = document.getElementById('cmd-timer-input');
+            },
+
+            bindEvents() {
+                this.navBtns.forEach(btn => {
+                    btn.addEventListener('click', (e) => this.switchView(e.target.dataset.target));
+                });
+                this.btnPrev.addEventListener('click', () => this.changeTeam(-1));
+                this.btnNext.addEventListener('click', () => this.changeTeam(1));
+
+                this.promoInput.addEventListener('keydown', (e) => {
+                    if(e.key === 'Enter') {
+                        e.preventDefault();
+                        this.redeemCode();
+                    }
+                });
+
+                // DETECTOR GLOBAL DE LA TECLA Ñ PARA COMANDOS
+                window.addEventListener('keydown', (e) => {
+                    if((e.key === 'ñ' || e.key === 'Ñ') && gameState.comandosActivos) {
+                        this.openModal('commands-modal');
+                    }
+                });
+            },
+
+            showMessage(text, isError = false) {
+                this.msgBox.textContent = text;
+                if(isError) {
+                    this.msgBox.classList.add('error');
+                } else {
+                    this.msgBox.classList.remove('error');
+                }
+                this.msgBox.classList.add('show');
+                setTimeout(() => this.msgBox.classList.remove('show'), 3000);
+            },
+
+            switchView(targetId) {
+                this.navBtns.forEach(btn => btn.classList.remove('active'));
+                this.views.forEach(view => view.classList.remove('active'));
+                
+                document.querySelector(`[data-target="${targetId}"]`).classList.add('active');
+                document.getElementById(targetId).classList.add('active');
+
+                if(targetId !== 'album-view' && targetId !== 'paste-view') gameState.pendingPasteId = null;
+
+                if(targetId === 'album-view') this.renderAlbum();
+                if(targetId === 'paste-view') this.renderInventory();
+                if(targetId === 'trade-view') {
+                    gameState.tradeSelectedId = null;
+                    this.renderTrade();
+                }
+            },
+
+            updateUI() {
+                const progressNum = (gameState.album.length / TOTAL_STICKERS) * 100;
+                this.progressFill.style.width = `${progressNum}%`;
+                this.progressText.textContent = `${Math.round(progressNum)}%`;
+
+                this.headerPackCount.textContent = gameState.sobresDisponibles;
+                this.mainPackCount.textContent = gameState.sobresDisponibles;
+                this.navPilaCount.textContent = gameState.inventario.length;
+                this.navTradeCount.textContent = gameState.repetidos.length;
+
+                const hasPacks = gameState.sobresDisponibles > 0;
+                this.btnOpenPack.disabled = !hasPacks;
+                this.packGraphic.style.opacity = hasPacks ? '1' : '0.5';
+                this.packGraphic.style.cursor = hasPacks ? 'pointer' : 'not-allowed';
+            },
+
+            // ================= MÓDULO: TEMPORIZADOR INFINITO =================
+            startTimer() {
+                setInterval(() => {
+                    gameState.currentTimer--;
+                    if (gameState.currentTimer <= 0) {
+                        gameState.sobresDisponibles += 3;
+                        this.updateUI();
+                        this.showMessage('¡Has recibido 3 sobres gratis!');
+                        gameState.currentTimer = gameState.timerDuration; // Resetear
+                    }
+                    
+                    const m = Math.floor(gameState.currentTimer / 60).toString().padStart(2, '0');
+                    const s = (gameState.currentTimer % 60).toString().padStart(2, '0');
+                    this.timerDisplay.textContent = `${m}:${s}`;
+                }, 1000);
+            },
+
+            // ================= MÓDULO: MODALES Y COMANDOS =================
+            openModal(id) {
+                document.getElementById(id).classList.add('active');
+            },
+            closeModal(id) {
+                document.getElementById(id).classList.remove('active');
+            },
+            activateCommands() {
+                gameState.comandosActivos = true;
+                this.closeModal('settings-modal');
+                this.showMessage('¡Opcion FIFA Activado! Buena suerte.');
+            },
+            openAllCodesModal() {
+                this.closeModal('settings-modal');
+                const listEl = document.getElementById('all-codes-list');
+                listEl.innerHTML = VALID_CODES.map(c => `<p>${c}</p>`).join('');
+                this.openModal('codes-modal');
+            },
+            copyAllCodes() {
+                const text = VALID_CODES.join('\n');
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showMessage('¡Todos los códigos copiados al portapapeles!');
+                }).catch(err => {
+                    console.error('Error al copiar: ', err);
+                });
+            },
+
+            // Comandos: Lógica de Panel Secreto
+            populateCommandSelect() {
+                let html = '';
+                db.forEach(c => {
+                    html += `<option value="${c.id}">[#${c.id}] ${c.countryCode} - ${c.name}</option>`;
+                });
+                this.cmdCardSelect.innerHTML = html;
+            },
+            updateCustomPackLimit() {
+                this.cmdPackLimit.textContent = this.cmdPackType.value;
+                // Si el limite es menor, recortar array
+                let limit = parseInt(this.cmdPackType.value);
+                if (gameState.customPackQueue.length > limit) {
+                    gameState.customPackQueue = gameState.customPackQueue.slice(0, limit);
+                    this.renderCustomCardsList();
+                }
+            },
+            addCustomCard() {
+                let limit = parseInt(this.cmdPackType.value);
+                if (gameState.customPackQueue.length >= limit) {
+                    this.showMessage('El sobre ya está lleno.', true);
+                    return;
+                }
+                const cardId = parseInt(this.cmdCardSelect.value);
+                const card = db.find(c => c.id === cardId);
+                gameState.customPackQueue.push(card);
+                this.renderCustomCardsList();
+            },
+            renderCustomCardsList() {
+                this.cmdPackCount.textContent = gameState.customPackQueue.length;
+                this.cmdCardsList.innerHTML = gameState.customPackQueue.map(c => 
+                    `<div class="custom-card-badge">${c.countryCode} ${c.indexInTeam}</div>`
+                ).join('');
+            },
+            saveCustomPack() {
+                let limit = parseInt(this.cmdPackType.value);
+                if (gameState.customPackQueue.length !== limit) {
+                    this.showMessage(`Debes elegir exactamente ${limit} cartas para este sobre.`, true);
+                    return;
+                }
+                gameState.customPackIsDeluxe = (limit === 13);
+                this.showMessage('¡Sobre Personalizado guardado! Abre un sobre ahora para recibir estas cartas.');
+                this.closeModal('commands-modal');
+            },
+            saveTimerSettings() {
+                let secs = parseInt(this.cmdTimerInput.value);
+                if (secs && secs > 0) {
+                    gameState.timerDuration = secs;
+                    gameState.currentTimer = secs;
+                    this.showMessage(`Tiempo actualizado a ${secs} segundos.`);
+                }
+            },
+
+            // ================= MÓDULO: ÁLBUM =================
+            changeTeam(dir) {
+                let newIndex = gameState.currentTeamIndex + dir;
+                if (newIndex < 0) newIndex = 0;
+                if (newIndex >= TEAMS.length) newIndex = TEAMS.length - 1;
+
+                gameState.currentTeamIndex = newIndex;
+                this.renderAlbum();
+            },
+
+            createStickerHTML(card, isGlued) {
+    // Si ya está pegado, comprobamos si debe ser dorado
+    if (isGlued) {
+        const isGolden = GOLDEN_PLAYERS.includes(card.name);
+        const isShield = card.type === 'shield';
+        
+        return `
+            <div class="sticker-card ${isShield ? 'shield' : ''} ${isGolden ? 'golden' : ''}">
+                <div class="id-badge">${card.countryCode} ${card.indexInTeam}</div>
+                <div class="art">${isShield ? '🛡️' : '👤'}</div>
+                <div class="info">
+                    <strong>${card.name}</strong>
+                </div>
+            </div>`;
+    }
+
+    // Si NO está pegado, muestra el slot normal
+    const tieneCromo = gameState.inventario.includes(card.id);
+    if (tieneCromo) {
+        return `
+            <div class="slot glow-gold">
+                <div class="slot-country">${card.countryCode} ${card.indexInTeam}</div>
+                <button class="btn-add-sticker" onclick="app.executePaste(${card.id})">+</button>
+            </div>`;
+    }
+
+    return `
+        <div class="slot">
+            <div class="slot-country">${card.countryCode}</div>
+            ${card.indexInTeam}
+        </div>`;
+},
+
+            renderAlbum() {
+                const teamIndex = gameState.currentTeamIndex;
+                const team = TEAMS[teamIndex];
+                const teamStickers = db.filter(c => c.countryCode === team.code);
+                
+                this.btnPrev.disabled = teamIndex === 0;
+                this.btnNext.disabled = teamIndex >= TEAMS.length - 1;
+                this.pageIndicator.textContent = team.name;
+
+                let leftHtml = `
+                    <div class="page-content">
+                        <div class="we-are-header">
+                            <span>WE ARE</span><br>
+                            ${team.name}
+                        </div>
+                        <div class="grid-left">
+                `;
+                for(let i=0; i<=4; i++) {
+                    const sticker = teamStickers[i];
+                    const isGlued = gameState.album.includes(sticker.id);
+                    leftHtml += `<div class="slot-container" id="slot-${i}">${this.createStickerHTML(sticker, isGlued)}</div>`;
+                }
+                leftHtml += `</div></div>`;
+                this.pageLeft.innerHTML = leftHtml;
+
+                let rightHtml = `<div class="page-content"><div class="grid-right">`;
+                for(let i=5; i<=10; i++) {
+                    const sticker = teamStickers[i];
+                    const isGlued = gameState.album.includes(sticker.id);
+                    rightHtml += `<div class="slot-container">${this.createStickerHTML(sticker, isGlued)}</div>`;
+                }
+
+                const groupTeams = GROUPS[team.group];
+                let flagsHtml = groupTeams.map(t => `<div class="flag-item">${t.code} ${t.name}</div>`).join('');
+                rightHtml += `<div class="group-box"><h3>GROUP ${team.group}</h3><div class="group-flags">${flagsHtml}</div></div>`;
+
+                const sticker11 = teamStickers[11];
+                const isGlued11 = gameState.album.includes(sticker11.id);
+                rightHtml += `<div class="slot-container">${this.createStickerHTML(sticker11, isGlued11)}</div></div></div>`;
+                
+                this.pageRight.innerHTML = rightHtml;
+
+                if(window.innerWidth <= 900) {
+                    this.pageLeft.innerHTML += `<hr style="margin:20px 0;">${rightHtml}`;
+                }
+            },
+
+            // ================= MÓDULO: ABRIR SOBRES =================
+            openPack() {
+                if (gameState.sobresDisponibles <= 0) return;
+
+                // Definir si es Deluxe o Normal
+                let isDeluxe = false;
+                
+                // Si hay un sobre personalizado listo, usar sus reglas
+                if (gameState.customPackQueue.length > 0) {
+                    isDeluxe = gameState.customPackIsDeluxe;
+                } else {
+                    // Probabilidad natural de 5% de que sea Deluxe (13 cartas buenas)
+                    isDeluxe = Math.random() < 0.05; 
+                }
+
+                gameState.sobresDisponibles--;
+                this.updateUI();
+
+                this.revealArea.style.display = 'none';
+                
+                // TRANSICIÓN VISUAL: Si es Deluxe, cambiar el color del sobre
+                if (isDeluxe) {
+                    this.packGraphic.classList.add('deluxe');
+                    this.packTitle.textContent = "DELUXE";
+                    this.packIcon.textContent = "💎";
+                    this.packSubtitle.textContent = "13 CARTAS PREMIUM";
+                }
+
+                // Pequeño timeout para que el usuario vea que se volvió Deluxe si fue suerte
+                setTimeout(() => {
+                    this.packGraphic.classList.add('opening');
+                    this.btnOpenPack.disabled = true;
+
+                    setTimeout(() => {
+                        this.generatePackContent(isDeluxe);
+                        this.packGraphic.style.display = 'none'; 
+                        this.revealArea.style.display = 'block'; 
+                        this.packGraphic.classList.remove('opening');
+                        
+                        // Resetear estilos visuales del sobre para el siguiente
+                        this.packGraphic.classList.remove('deluxe');
+                        this.packTitle.textContent = "2026";
+                        this.packIcon.textContent = "🌟";
+                        this.packSubtitle.textContent = "5 CROMOS";
+                    }, 1000);
+
+                }, isDeluxe && gameState.customPackQueue.length === 0 ? 800 : 0);
+            },
+
+            generatePackContent(isDeluxe) {
+                gameState.openedPackCards = [];
+                this.revealGrid.innerHTML = '';
+                
+                let limit = isDeluxe ? 13 : 5;
+
+                // Lógica si el sobre es Personalizado
+                if (gameState.customPackQueue.length > 0) {
+                    gameState.openedPackCards = [...gameState.customPackQueue];
+                    gameState.customPackQueue = []; // Vaciar cola tras usar
+                } 
+                // Lógica si es aleatorio
+                else {
+                    for(let i=0; i<limit; i++) {
+                        let randomId;
+                        if (isDeluxe && i < 3) {
+                            // En sobre Deluxe natural, forzamos que las 3 primeras cartas sean escudos (buenos)
+                            const shields = db.filter(c => c.type === 'shield');
+                            randomId = shields[Math.floor(Math.random() * shields.length)].id;
+                        } else {
+                            randomId = Math.floor(Math.random() * TOTAL_STICKERS) + 1;
+                        }
+                        const card = db.find(c => c.id === randomId);
+                        gameState.openedPackCards.push(card);
+                    }
+                }
+
+                // Renderizar
+                gameState.openedPackCards.forEach((card, i) => {
+                    setTimeout(() => {
+                        const cardEl = document.createElement('div');
+                        cardEl.className = 'revealed-sticker';
+                        cardEl.innerHTML = this.createStickerHTML(card, true); 
+                        this.revealGrid.appendChild(cardEl);
+                    }, i * 150);
+                });
+            },
+
+            saveOpenedPack() {
+                let newCount = 0, repCount = 0;
+
+                gameState.openedPackCards.forEach(card => {
+                    if (gameState.album.includes(card.id) || gameState.inventario.includes(card.id) || gameState.repetidos.includes(card.id)) {
+                        gameState.repetidos.push(card.id);
+                        repCount++;
+                    } else {
+                        gameState.inventario.push(card.id);
+                        newCount++;
+                    }
+                });
+
+                this.showMessage(`Añadidos: ${newCount} Nuevos a Mis Cromos, ${repCount} Repetidos.`);
+                
+                gameState.openedPackCards = [];
+                this.revealArea.style.display = 'none';
+                this.packGraphic.style.display = 'flex';
+                this.updateUI();
+            },
+
+            // ================= MÓDULO: MIS CROMOS =================
+            renderInventory() {
+                this.pilaGrid.innerHTML = '';
+                if (gameState.inventario.length === 0) {
+                    this.pilaGrid.innerHTML = '<div class="empty-state">No tienes cromos sin pegar. ¡Abre más sobres!</div>';
+                    return;
+                }
+
+                const sortedInv = [...gameState.inventario].sort((a,b) => a - b);
+                sortedInv.forEach(id => {
+                    const card = db.find(c => c.id === id);
+                    const el = document.createElement('div');
+                    el.className = 'inventory-item';
+                    el.innerHTML = this.createStickerHTML(card, true);
+                    el.onclick = () => this.initiatePasteSequence(id);
+                    this.pilaGrid.appendChild(el);
+                });
+            },
+
+            initiatePasteSequence(id) {
+                gameState.pendingPasteId = id;
+                const card = db.find(c => c.id === id);
+                const tIndex = TEAMS.findIndex(t => t.code === card.countryCode);
+                
+                this.switchView('album-view');
+                gameState.currentTeamIndex = tIndex;
+                this.renderAlbum();
+                this.showMessage(`Haz clic en el recuadro con el signo + dorado para pegar a ${card.name}`);
+            },
+
+            executePaste(id) {
+                gameState.inventario = gameState.inventario.filter(itemId => itemId !== id);
+                gameState.album.push(id);
+                gameState.pendingPasteId = null;
+                
+                this.updateUI();
+                this.renderAlbum(); 
+                this.showMessage('¡Cromo pegado exitosamente!');
+                
+                if(gameState.album.length === TOTAL_STICKERS) {
+                    setTimeout(() => alert("¡FELICIDADES! ¡HAS COMPLETADO EL ÁLBUM DEL MUNDIAL 2026!"), 500);
+                }
+            },
+
+            // ================= MÓDULO: INTERCAMBIO =================
+            renderTrade() {
+                this.tradeGrid.innerHTML = '';
+
+                if (gameState.repetidos.length === 0) {
+                    this.tradeGrid.innerHTML = '<div class="empty-state">No tienes cromos repetidos para intercambiar.</div>';
+                    this.btnExecuteTrade.disabled = true;
+                    this.btnTradeAll.disabled = true;
+                    this.tradeSelectedName.textContent = 'Ninguno';
+                    return;
+                }
+
+                this.btnTradeAll.disabled = false; 
+
+                gameState.repetidos.forEach((id) => {
+                    const card = db.find(c => c.id === id);
+                    const el = document.createElement('div');
+                    el.className = `inventory-item ${gameState.tradeSelectedId === id ? 'selected-for-trade' : ''}`;
+                    el.innerHTML = this.createStickerHTML(card, true);
+                    el.onclick = () => this.selectForTrade(id);
+                    this.tradeGrid.appendChild(el);
+                });
+
+                if (gameState.tradeSelectedId) {
+                    const sCard = db.find(c => c.id === gameState.tradeSelectedId);
+                    this.tradeSelectedName.textContent = `${sCard.countryCode} ${sCard.indexInTeam} - ${sCard.name}`;
+                    this.btnExecuteTrade.disabled = false;
+                } else {
+                    this.tradeSelectedName.textContent = 'Ninguno';
+                    this.btnExecuteTrade.disabled = true;
+                }
+            },
+
+            selectForTrade(id) {
+                gameState.tradeSelectedId = id;
+                this.renderTrade();
+            },
+
+            getMissingIds() {
+                return db.map(c => c.id).filter(id => 
+                    !gameState.album.includes(id) && 
+                    !gameState.inventario.includes(id)
+                );
+            },
+
+            executeTrade() {
+                if (!gameState.tradeSelectedId) return;
+
+                const missingIds = this.getMissingIds();
+
+                if (missingIds.length === 0) {
+                    this.showMessage('¡No te falta ningún cromo! Álbum completado.', true);
+                    return;
+                }
+
+                const indexToRemove = gameState.repetidos.indexOf(gameState.tradeSelectedId);
+                if (indexToRemove > -1) gameState.repetidos.splice(indexToRemove, 1);
+
+                const randomMissingId = missingIds[Math.floor(Math.random() * missingIds.length)];
+                gameState.inventario.push(randomMissingId);
+                const rewardCard = db.find(c => c.id === randomMissingId);
+
+                gameState.tradeSelectedId = null;
+                this.updateUI();
+                this.renderTrade();
+                this.showMessage(`¡Éxito! Has recibido: ${rewardCard.countryCode} ${rewardCard.indexInTeam} (${rewardCard.name})`);
+            },
+
+            executeTradeAll() {
+                const missingIds = this.getMissingIds();
+
+                if (missingIds.length === 0) {
+                    this.showMessage('¡No te faltan cromos!', true);
+                    return;
+                }
+                if (gameState.repetidos.length === 0) return;
+
+                let tradesDone = 0;
+                while (gameState.repetidos.length > 0 && missingIds.length > 0) {
+                    gameState.repetidos.pop();
+                    const randomIdx = Math.floor(Math.random() * missingIds.length);
+                    const newId = missingIds.splice(randomIdx, 1)[0]; 
+                    gameState.inventario.push(newId);
+                    tradesDone++;
+                }
+
+                gameState.tradeSelectedId = null;
+                this.updateUI();
+                this.renderTrade();
+                this.showMessage(`¡Intercambio Masivo Completado! Has recibido ${tradesDone} cromos nuevos.`);
+            },
+
+            // ================= MÓDULO: CÓDIGOS =================
+            redeemCode() {
+                const code = this.promoInput.value.trim().toUpperCase();
+                if (!code) return;
+
+                if (VALID_CODES.includes(code)) {
+                    if (gameState.codigosUsados.includes(code)) {
+                        this.showMessage('Ya has utilizado este código promocional.', true);
+                    } else {
+                        gameState.codigosUsados.push(code);
+                        gameState.sobresDisponibles += 3;
+                        this.updateUI();
+                        this.showMessage('¡Código válido! Has recibido +3 sobres.');
+                        this.promoInput.value = '';
+                    }
+                } else {
+                    this.showMessage('Código inválido.', true);
+                }
+            }
+        };
+
+        window.addEventListener('resize', () => {
+            if(document.getElementById('album-view').classList.contains('active')) {
+                app.renderAlbum();
+            }
+        });
+
+        window.onload = () => app.init();
+
+    </script>
+</body>
+</html>
