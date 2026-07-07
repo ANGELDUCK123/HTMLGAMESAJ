@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mine2D Survival</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #2c2c2c;
+            font-family: 'VT323', monospace;
+            user-select: none;
+        }
+
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pixel-text {
+            font-family: 'VT323', monospace;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .hud-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .bars-container {
+            display: flex;
+            justify-content: space-between;
+            width: 400px;
+            margin-bottom: 5px;
+        }
+
+        .hearts, .hunger {
+            display: flex;
+            gap: 2px;
+            font-size: 24px;
+        }
+
+        .hotbar {
+            display: flex;
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 2px solid #555;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .slot {
+            width: 40px;
+            height: 40px;
+            background-color: #8b8b8b;
+            border: 2px inset #ffffff;
+            margin: 2px;
+            position: relative;
+            cursor: pointer;
+            pointer-events: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+        }
+        
+        .slot:hover {
+            background-color: #a0a0a0;
+        }
+
+        .slot.active {
+            border: 2px solid #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+
+        .item-count {
+            position: absolute;
+            bottom: -2px;
+            right: 2px;
+            color: white;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .window-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #c6c6c6;
+            border: 4px solid #000;
+            padding: 20px;
+            display: none;
+            pointer-events: auto;
+            box-shadow: 10px 10px 0 rgba(0,0,0,0.5);
+        }
+
+        #inventory-screen {
+            width: 500px;
+        }
+
+        .inv-section-title {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 5px;
+            text-shadow: none;
+        }
+
+        .crafting-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .crafting-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            gap: 4px;
+            background: #8b8b8b;
+            padding: 4px;
+            border: 2px solid #555;
+        }
+
+        .crafting-arrow {
+            font-size: 30px;
+            margin: 0 15px;
+            color: #333;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            gap: 4px;
+            background: #8b8b8b;
+            padding: 4px;
+            border: 2px solid #555;
+        }
+
+        #chest-screen {
+            width: 420px;
+        }
+        
+        .chest-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 40px);
+            gap: 4px;
+            background: #8b8b8b;
+            padding: 4px;
+            border: 2px solid #555;
+            margin-bottom: 20px;
+        }
+
+        #interaction-prompt {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 24px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 15px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #message-box {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: yellow;
+            font-size: 28px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: none;
+            text-align: center;
+            border: 2px solid white;
+        }
+
+        .btn-inventory {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #8b8b8b;
+            border: 3px solid #000;
+            padding: 10px 20px;
+            font-size: 24px;
+            cursor: pointer;
+            pointer-events: auto;
+            color: white;
+        }
+        
+        .btn-inventory:hover { background: #a0a0a0; }
+
+        /* Cursor item for dragging */
+        #cursor-item {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 24px;
+            display: none;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* Screen transitions */
+        #fade-overlay {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: black;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <button class="btn-inventory pixel-text" onclick="toggleInventory()">Inventario (X)</button>
+        
+        <div id="interaction-prompt" class="pixel-text">Presiona 'E' para interactuar</div>
+        <div id="message-box" class="pixel-text"></div>
+
+        <div class="hud-container">
+            <div class="bars-container">
+                <div class="hearts" id="hearts-container"></div>
+                <div class="hunger" id="hunger-container"></div>
+            </div>
+            <div class="hotbar" id="hotbar-container">
+                <!-- Generado por JS -->
+            </div>
+            <div style="color:white; margin-top:5px;" class="pixel-text">WASD: Mover | E: Interactuar | P: Atacar | C: Comer | X: Inventario</div>
+        </div>
+
+        <!-- Inventory Screen -->
+        <div id="inventory-screen" class="window-overlay">
+            <div style="display:flex; justify-content: space-between;">
+                <div>
+                    <div class="inv-section-title">Fabricación</div>
+                    <div class="crafting-container">
+                        <div class="crafting-grid" id="crafting-grid"></div>
+                        <div class="crafting-arrow">➜</div>
+                        <div class="slot" id="crafting-result" onclick="takeCraftingResult()"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="inv-section-title">Armadura</div>
+                    <div style="display:grid; gap:4px;">
+                        <div class="slot" id="armor-0" onclick="handleSlotClick('armor', 0)"></div>
+                        <div class="slot" id="armor-1" onclick="handleSlotClick('armor', 1)"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="inv-section-title">Inventario</div>
+            <div class="inventory-grid" id="main-inventory-grid"></div>
+            <div style="height:10px;"></div>
+            <div class="inventory-grid" id="hotbar-inventory-grid"></div>
+        </div>
+
+        <!-- Chest Screen -->
+        <div id="chest-screen" class="window-overlay">
+            <div class="inv-section-title">Cofre</div>
+            <div class="chest-grid" id="chest-grid"></div>
+            <div class="inv-section-title">Inventario</div>
+            <div class="inventory-grid" id="chest-main-inventory"></div>
+            <div style="height:10px;"></div>
+            <div class="inventory-grid" id="chest-hotbar-inventory"></div>
+        </div>
+    </div>
+
+    <div id="cursor-item"></div>
+    <div id="fade-overlay"></div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Items Database
+        const ITEMS = {
+            wood: { id: 'wood', name: 'Madera', icon: '🪵', maxStack: 64, type: 'material' },
+            planks: { id: 'planks', name: 'Tablones', icon: '🟫', maxStack: 64, type: 'material' },
+            stick: { id: 'stick', name: 'Palo', icon: '🦯', maxStack: 64, type: 'material' },
+            stone: { id: 'stone', name: 'Piedra', icon: '🪨', maxStack: 64, type: 'material' },
+            emerald: { id: 'emerald', name: 'Esmeralda', icon: '💎', maxStack: 64, type: 'material' },
+            apple: { id: 'apple', name: 'Manzana', icon: '🍎', maxStack: 64, type: 'food', foodValue: 2 },
+            carrot: { id: 'carrot', name: 'Zanahoria', icon: '🥕', maxStack: 64, type: 'food', foodValue: 3 },
+            wood_sword: { id: 'wood_sword', name: 'Espada de Madera', icon: '🗡️', maxStack: 1, type: 'sword', damage: 3 },
+            stone_sword: { id: 'stone_sword', name: 'Espada de Piedra', icon: '⚔️', maxStack: 1, type: 'sword', damage: 5 },
+            wood_axe: { id: 'wood_axe', name: 'Hacha de Madera', icon: '🪓', maxStack: 1, type: 'axe', damage: 2 },
+            stone_axe: { id: 'stone_axe', name: 'Hacha de Piedra', icon: '⚒️', maxStack: 1, type: 'axe', damage: 4 },
+            wood_pickaxe: { id: 'wood_pickaxe', name: 'Pico de Madera', icon: '⛏️', maxStack: 1, type: 'pickaxe', damage: 1 },
+            chest: { id: 'chest', name: 'Cofre', icon: '📦', maxStack: 64, type: 'block' }
+        };
+
+        // Recipes logic: simplified shape checking
+        // Array of 9 strings matching item IDs or null
+        const RECIPES = [
+            {
+                result: { id: 'planks', count: 4 },
+                check: (grid) => {
+                    let woodCount = 0;
+                    let others = 0;
+                    grid.forEach(item => { if(item?.id === 'wood') woodCount++; else if(item) others++; });
+                    return woodCount === 1 && others === 0;
+                }
+            },
+            {
+                result: { id: 'stick', count: 4 },
+                check: (grid) => {
+                    // Check for two planks vertically
+                    for(let i=0; i<6; i++) {
+                        if(grid[i]?.id === 'planks' && grid[i+3]?.id === 'planks') {
+                            // ensure no other items
+                            let count = 0; grid.forEach(item => { if(item) count++; });
+                            if(count === 2) return true;
+                        }
+                    }
+                    return false;
+                }
+            },
+            {
+                result: { id: 'wood_sword', count: 1 },
+                check: (grid) => {
+                    for(let i=0; i<3; i++) {
+                        if(grid[i]?.id === 'planks' && grid[i+3]?.id === 'planks' && grid[i+6]?.id === 'stick') {
+                            let count = 0; grid.forEach(item => { if(item) count++; });
+                            if(count === 3) return true;
+                        }
+                    }
+                    return false;
+                }
+            },
+            {
+                result: { id: 'stone_sword', count: 1 },
+                check: (grid) => {
+                    for(let i=0; i<3; i++) {
+                        if(grid[i]?.id === 'stone' && grid[i+3]?.id === 'stone' && grid[i+6]?.id === 'stick') {
+                            let count = 0; grid.forEach(item => { if(item) count++; });
+                            if(count === 3) return true;
+                        }
+                    }
+                    return false;
+                }
+            },
+            {
+                result: { id: 'wood_axe', count: 1 },
+                check: (grid) => {
+                    // Standard axe shape (top left or top right)
+                    let p = 'planks', s = 'stick';
+                    const s1 = [p,p,null, p,s,null, null,s,null];
+                    const s2 = [null,p,p, null,s,p, null,s,null];
+                    const match = (patt) => patt.every((val, idx) => (grid[idx]?.id || null) === val);
+                    return match(s1) || match(s2);
+                }
+            }
+        ];
+
+        const TILE_SIZE = 40;
+        
+        let gameState = {
+            screen: 'game', // game, inventory, chest, house, upstairs
+            time: 6000, // 0 to 24000 (day/night)
+            isNight: false,
+            activeChest: null
+        };
+
+        let player = {
+            x: 0, y: 0, width: 30, height: 30,
+            speed: 5,
+            hp: 10, maxHp: 10,
+            food: 10, maxFood: 10,
+            direction: 1, // 0:up, 1:right, 2:down, 3:left
+            hotbarSelected: 0,
+            inventory: {
+                hotbar: Array(9).fill(null),
+                main: Array(27).fill(null),
+                crafting: Array(9).fill(null),
+                armor: Array(4).fill(null)
+            }
+        };
+
+        // Give starting items (for testing/safety)
+        player.inventory.hotbar[0] = { id: 'apple', count: 5 };
+
+        let cursorItem = null;
+        let craftResultItem = null;
+
+        let camera = { x: 0, y: 0 };
+        let keys = {};
+
+        // Environments
+        let MAP_SIZE = 3000;
+        let world = {
+            trees: [],
+            rocks: [],
+            houses: [],
+            villages: [],
+            mobs: [],
+            drops: []
+        };
+        
+        let currentMap = 'overworld'; // overworld, house, upstairs
+        let interiorObjects = [];
+
+        function initWorld() {
+            // Generate Trees
+            for(let i = 0; i < 300; i++) {
+                world.trees.push({
+                    x: Math.random() * MAP_SIZE - MAP_SIZE/2,
+                    y: Math.random() * MAP_SIZE - MAP_SIZE/2,
+                    hp: 3
+                });
+            }
+            // Generate Stones
+            for(let i = 0; i < 150; i++) {
+                world.rocks.push({
+                    x: Math.random() * MAP_SIZE - MAP_SIZE/2,
+                    y: Math.random() * MAP_SIZE - MAP_SIZE/2
+                });
+            }
+
+            // Generate Houses (Requires Axe to chop trees, so we put loot here)
+            for(let i = 0; i < 8; i++) {
+                let hx = Math.random() * MAP_SIZE - MAP_SIZE/2;
+                let hy = Math.random() * MAP_SIZE - MAP_SIZE/2;
+                // Generate chest loot for this house
+                let loot = Array(27).fill(null);
+                loot[0] = { id: 'wood_axe', count: 1 };
+                loot[1] = { id: 'emerald', count: Math.floor(Math.random()*5)+1 };
+                loot[2] = { id: 'apple', count: 3 };
+                
+                world.houses.push({ x: hx, y: hy, width: 120, height: 120, chestLoot: loot });
+            }
+
+            // Generate Villages
+            for(let i = 0; i < 3; i++) {
+                let vx = (Math.random() * MAP_SIZE/2) * (Math.random()>0.5?1:-1);
+                let vy = (Math.random() * MAP_SIZE/2) * (Math.random()>0.5?1:-1);
+                
+                let village = { x: vx, y: vy, houses: [], crops: [], villagers: [] };
+                
+                // Village Huts
+                for(let j=0; j<4; j++) {
+                    village.houses.push({
+                        x: vx + (Math.random()*300 - 150),
+                        y: vy + (Math.random()*300 - 150)
+                    });
+                }
+                // Crops (Carrots)
+                for(let j=0; j<10; j++) {
+                    village.crops.push({
+                        x: vx + (Math.random()*200 - 100),
+                        y: vy + (Math.random()*200 - 100),
+                        ready: true
+                    });
+                }
+                // Villagers
+                for(let j=0; j<4; j++) {
+                    village.villagers.push({
+                        x: vx + (Math.random()*200 - 100),
+                        y: vy + (Math.random()*200 - 100),
+                        vx: (Math.random()-0.5)*2,
+                        vy: (Math.random()-0.5)*2,
+                        timer: 0
+                    });
+                }
+                world.villages.push(village);
+            }
+        }
+
+        function createInvSlots(containerId, count, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            for(let i=0; i<count; i++) {
+                let div = document.createElement('div');
+                div.className = 'slot';
+                div.id = `${type}-${i}`;
+                div.onclick = () => handleSlotClick(type, i);
+                container.appendChild(div);
+            }
+        }
+
+        function initUI() {
+            createInvSlots('hotbar-container', 9, 'hotbar-ui');
+            createInvSlots('main-inventory-grid', 27, 'main');
+            createInvSlots('hotbar-inventory-grid', 9, 'hotbar');
+            createInvSlots('crafting-grid', 9, 'crafting');
+            
+            createInvSlots('chest-grid', 27, 'chest');
+            createInvSlots('chest-main-inventory', 27, 'main');
+            createInvSlots('chest-hotbar-inventory', 9, 'hotbar');
+            updateHUD();
+        }
+
+        function updateSlotVisual(elementId, item) {
+            const el = document.getElementById(elementId);
+            if(!el) return;
+            if(item) {
+                el.innerHTML = `${ITEMS[item.id].icon}<div class="item-count">${item.count > 1 ? item.count : ''}</div>`;
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        function updateInventoryUI() {
+            // Hotbar
+            for(let i=0; i<9; i++) {
+                updateSlotVisual(`hotbar-${i}`, player.inventory.hotbar[i]);
+                updateSlotVisual(`hotbar-ui-${i}`, player.inventory.hotbar[i]);
+                let hui = document.getElementById(`hotbar-ui-${i}`);
+                if(hui) {
+                    if(i === player.hotbarSelected) hui.classList.add('active');
+                    else hui.classList.remove('active');
+                }
+            }
+            // Main
+            for(let i=0; i<27; i++) updateSlotVisual(`main-${i}`, player.inventory.main[i]);
+            // Crafting
+            for(let i=0; i<9; i++) updateSlotVisual(`crafting-${i}`, player.inventory.crafting[i]);
+            
+            checkCrafting();
+            updateSlotVisual('crafting-result', craftResultItem);
+
+            // If chest is open
+            if(gameState.activeChest) {
+                for(let i=0; i<27; i++) updateSlotVisual(`chest-${i}`, gameState.activeChest[i]);
+            }
+        }
+
+        function handleSlotClick(type, index) {
+            let targetArray;
+            if(type === 'hotbar' || type === 'hotbar-ui') targetArray = player.inventory.hotbar;
+            else if(type === 'main') targetArray = player.inventory.main;
+            else if(type === 'crafting') targetArray = player.inventory.crafting;
+            else if(type === 'chest') targetArray = gameState.activeChest;
+            else if(type === 'armor') targetArray = player.inventory.armor;
+
+            if(!targetArray) return;
+
+            let clickedItem = targetArray[index];
+
+            if(cursorItem) {
+                if(clickedItem && clickedItem.id === cursorItem.id && clickedItem.count < ITEMS[clickedItem.id].maxStack) {
+                    // Merge
+                    let space = ITEMS[clickedItem.id].maxStack - clickedItem.count;
+                    if(cursorItem.count <= space) {
+                        clickedItem.count += cursorItem.count;
+                        cursorItem = null;
+                    } else {
+                        clickedItem.count += space;
+                        cursorItem.count -= space;
+                    }
+                } else {
+                    // Swap
+                    targetArray[index] = cursorItem;
+                    cursorItem = clickedItem;
+                }
+            } else {
+                // Pick up
+                cursorItem = clickedItem;
+                targetArray[index] = null;
+            }
+
+            updateCursor();
+            updateInventoryUI();
+        }
+
+        function checkCrafting() {
+            craftResultItem = null;
+            for(let recipe of RECIPES) {
+                if(recipe.check(player.inventory.crafting)) {
+                    craftResultItem = { id: recipe.result.id, count: recipe.result.count };
+                    break;
+                }
+            }
+        }
+
+        function takeCraftingResult() {
+            if(!craftResultItem) return;
+            
+            if(cursorItem) {
+                if(cursorItem.id === craftResultItem.id && cursorItem.count + craftResultItem.count <= ITEMS[cursorItem.id].maxStack) {
+                    cursorItem.count += craftResultItem.count;
+                } else {
+                    return; // Can't pick up
+                }
+            } else {
+                cursorItem = { ...craftResultItem };
+            }
+
+            // Deduct ingredients
+            for(let i=0; i<9; i++) {
+                if(player.inventory.crafting[i]) {
+                    player.inventory.crafting[i].count--;
+                    if(player.inventory.crafting[i].count <= 0) player.inventory.crafting[i] = null;
+                }
+            }
+            
+            checkCrafting();
+            updateCursor();
+            updateInventoryUI();
+        }
+
+        function updateCursor() {
+            const curEl = document.getElementById('cursor-item');
+            if(cursorItem) {
+                curEl.style.display = 'block';
+                curEl.innerHTML = `${ITEMS[cursorItem.id].icon}<div style="font-size:16px; margin-top:-10px;">${cursorItem.count>1?cursorItem.count:''}</div>`;
+            } else {
+                curEl.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            const curEl = document.getElementById('cursor-item');
+            if(curEl.style.display === 'block') {
+                curEl.style.left = e.clientX + 15 + 'px';
+                curEl.style.top = e.clientY + 15 + 'px';
+            }
+        });
+
+        function toggleInventory() {
+            if(gameState.screen === 'game') {
+                gameState.screen = 'inventory';
+                document.getElementById('inventory-screen').style.display = 'block';
+            } else {
+                closeUIs();
+            }
+        }
+
+        function closeUIs() {
+            gameState.screen = 'game';
+            document.getElementById('inventory-screen').style.display = 'none';
+            document.getElementById('chest-screen').style.display = 'none';
+            gameState.activeChest = null;
+            
+            // Drop cursor item if closing
+            if(cursorItem) {
+                giveItem(cursorItem.id, cursorItem.count);
+                cursorItem = null;
+                updateCursor();
+            }
+        }
+
+        function giveItem(id, count) {
+            // Try hotbar first
+            for(let i=0; i<9; i++) {
+                if(player.inventory.hotbar[i] && player.inventory.hotbar[i].id === id && player.inventory.hotbar[i].count < ITEMS[id].maxStack) {
+                    player.inventory.hotbar[i].count += count;
+                    updateInventoryUI();
+                    return;
+                }
+            }
+            for(let i=0; i<9; i++) {
+                if(!player.inventory.hotbar[i]) {
+                    player.inventory.hotbar[i] = {id, count};
+                    updateInventoryUI();
+                    return;
+                }
+            }
+            // Then main
+            for(let i=0; i<27; i++) {
+                if(player.inventory.main[i] && player.inventory.main[i].id === id && player.inventory.main[i].count < ITEMS[id].maxStack) {
+                    player.inventory.main[i].count += count;
+                    updateInventoryUI();
+                    return;
+                }
+            }
+            for(let i=0; i<27; i++) {
+                if(!player.inventory.main[i]) {
+                    player.inventory.main[i] = {id, count};
+                    updateInventoryUI();
+                    return;
+                }
+            }
+        }
+
+        function updateHUD() {
+            let hpHTML = '';
+            for(let i=0; i<10; i++) hpHTML += i < player.hp ? '❤️' : '🖤';
+            document.getElementById('hearts-container').innerHTML = hpHTML;
+
+            let foodHTML = '';
+            for(let i=0; i<10; i++) foodHTML += i < player.food ? '🍖' : '🦴';
+            document.getElementById('hunger-container').innerHTML = foodHTML;
+            
+            updateInventoryUI();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            
+            if(e.key >= '1' && e.key <= '9') {
+                player.hotbarSelected = parseInt(e.key) - 1;
+                updateInventoryUI();
+            }
+            if(e.key.toLowerCase() === 'x') {
+                toggleInventory();
+            }
+            if(e.key.toLowerCase() === 'escape') {
+                closeUIs();
+            }
+            if(e.key.toLowerCase() === 'c' && gameState.screen === 'game') {
+                eatFood();
+            }
+            if(e.key.toLowerCase() === 'p' && gameState.screen === 'game') {
+                attack();
+            }
+            if(e.key.toLowerCase() === 'e' && gameState.screen === 'game') {
+                interact();
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        function eatFood() {
+            let item = player.inventory.hotbar[player.hotbarSelected];
+            if(item && ITEMS[item.id].type === 'food' && player.food < player.maxFood) {
+                player.food = Math.min(player.maxFood, player.food + ITEMS[item.id].foodValue);
+                item.count--;
+                if(item.count <= 0) player.inventory.hotbar[player.hotbarSelected] = null;
+                updateHUD();
+                showMessage("¡Comiste " + ITEMS[item.id].name + "!");
+            }
+        }
+
+        function attack() {
+            let range = 60;
+            let dmg = 1;
+            let equipped = player.inventory.hotbar[player.hotbarSelected];
+            if(equipped && ITEMS[equipped.id].damage) dmg = ITEMS[equipped.id].damage;
+
+            // Attack Mobs
+            for(let i = world.mobs.length - 1; i >= 0; i--) {
+                let mob = world.mobs[i];
+                let dist = Math.hypot(mob.x - player.x, mob.y - player.y);
+                if(dist < range) {
+                    mob.hp -= dmg;
+                    // Knockback
+                    mob.x += (mob.x - player.x) * 0.5;
+                    mob.y += (mob.y - player.y) * 0.5;
+                    
+                    if(mob.hp <= 0) {
+                        // Drop loot
+                        world.drops.push({ x: mob.x, y: mob.y, id: mob.type==='zombie'?'apple':'stone', count: 1 });
+                        world.mobs.splice(i, 1);
+                    }
+                }
+            }
+
+            // Chop trees
+            if(currentMap === 'overworld') {
+                let isAxe = equipped && ITEMS[equipped.id].type === 'axe';
+                if(!isAxe) {
+                    // Solo aviso si intentas golpear un arbol de cerca
+                    let nearTree = world.trees.find(t => Math.hypot(t.x - player.x, t.y - player.y) < 50);
+                    if(nearTree) showMessage("¡Necesitas un hacha para talar!");
+                    return;
+                }
+
+                for(let i = world.trees.length - 1; i >= 0; i--) {
+                    let tree = world.trees[i];
+                    if(Math.hypot(tree.x - player.x, tree.y - player.y) < range) {
+                        tree.hp -= dmg;
+                        if(tree.hp <= 0) {
+                            world.drops.push({ x: tree.x, y: tree.y, id: 'wood', count: Math.floor(Math.random()*3)+1 });
+                            if(Math.random() > 0.5) world.drops.push({ x: tree.x, y: tree.y, id: 'apple', count: 1 });
+                            world.trees.splice(i, 1);
+                        }
+                        break; // solo un arbol a la vez
+                    }
+                }
+            }
+        }
+
+        let currentInteraction = null;
+
+        function checkInteractions() {
+            if(gameState.screen !== 'game') {
+                document.getElementById('interaction-prompt').style.display = 'none';
+                return;
+            }
+
+            currentInteraction = null;
+            let promptText = "";
+
+            if(currentMap === 'overworld') {
+                // Check Houses
+                for(let h of world.houses) {
+                    if(Math.hypot(h.x - player.x, h.y - player.y) < 80) {
+                        currentInteraction = { type: 'enter_house', target: h };
+                        promptText = "Presiona E para entrar a la Casa";
+                    }
+                }
+                // Check Villagers
+                for(let v of world.villages) {
+                    for(let villager of v.villagers) {
+                        if(Math.hypot(villager.x - player.x, villager.y - player.y) < 60) {
+                            currentInteraction = { type: 'talk_villager' };
+                            promptText = "Presiona E para hablar";
+                        }
+                    }
+                    for(let i = v.crops.length-1; i>=0; i--) {
+                        if(v.crops[i].ready && Math.hypot(v.crops[i].x - player.x, v.crops[i].y - player.y) < 50) {
+                            currentInteraction = { type: 'harvest_crop', index: i, village: v };
+                            promptText = "Presiona E para cosechar";
+                        }
+                    }
+                }
+            } else if (currentMap === 'house') {
+                // Inside house: Sofa, Bed, Stairs, Exit
+                if(Math.hypot(0 - player.x, 150 - player.y) < 60) { // Exit
+                    currentInteraction = { type: 'exit_house' };
+                    promptText = "Presiona E para salir";
+                } else if(Math.hypot(100 - player.x, -100 - player.y) < 60) { // Stairs
+                    currentInteraction = { type: 'go_upstairs' };
+                    promptText = "Presiona E para subir escaleras";
+                } else if(Math.hypot(-100 - player.x, -100 - player.y) < 60) { // Bed
+                    currentInteraction = { type: 'sleep' };
+                    promptText = "Presiona E para dormir";
+                }
+            } else if (currentMap === 'upstairs') {
+                if(Math.hypot(0 - player.x, 150 - player.y) < 60) { // Stairs down
+                    currentInteraction = { type: 'go_downstairs' };
+                    promptText = "Presiona E para bajar";
+                } else if(Math.hypot(0 - player.x, -100 - player.y) < 60) { // Chest
+                    currentInteraction = { type: 'open_chest' };
+                    promptText = "Presiona E para abrir el cofre";
+                }
+            }
+
+            const promptEl = document.getElementById('interaction-prompt');
+            if(currentInteraction) {
+                promptEl.style.display = 'block';
+                promptEl.innerText = promptText;
+            } else {
+                promptEl.style.display = 'none';
+            }
+        }
+
+        let activeHouseTarget = null;
+
+        function transition(callback) {
+            const overlay = document.getElementById('fade-overlay');
+            overlay.style.opacity = 1;
+            setTimeout(() => {
+                callback();
+                overlay.style.opacity = 0;
+            }, 500);
+        }
+
+        function interact() {
+            if(!currentInteraction) return;
+
+            switch(currentInteraction.type) {
+                case 'enter_house':
+                    transition(() => {
+                        currentMap = 'house';
+                        activeHouseTarget = currentInteraction.target;
+                        player.x = 0; player.y = 100;
+                    });
+                    break;
+                case 'exit_house':
+                    transition(() => {
+                        currentMap = 'overworld';
+                        player.x = activeHouseTarget.x;
+                        player.y = activeHouseTarget.y + 80;
+                    });
+                    break;
+                case 'go_upstairs':
+                    transition(() => {
+                        currentMap = 'upstairs';
+                        player.x = 0; player.y = 100;
+                    });
+                    break;
+                case 'go_downstairs':
+                    transition(() => {
+                        currentMap = 'house';
+                        player.x = 100; player.y = -50;
+                    });
+                    break;
+                case 'open_chest':
+                    gameState.activeChest = activeHouseTarget.chestLoot;
+                    gameState.screen = 'chest';
+                    document.getElementById('chest-screen').style.display = 'block';
+                    updateInventoryUI();
+                    break;
+                case 'sleep':
+                    if(gameState.isNight) {
+                        transition(() => {
+                            gameState.time = 6000; // Morning
+                            world.mobs = []; // Despawn enemies
+                            showMessage("Has dormido. Es de día.");
+                        });
+                    } else {
+                        showMessage("Solo puedes dormir de noche.");
+                    }
+                    break;
+                case 'talk_villager':
+                    const msgs = ["¡Hola forastero!", "¿Traes esmeraldas?", "Cuidado con los creepers...", "¡Qué bonita hacha!"];
+                    showMessage(msgs[Math.floor(Math.random()*msgs.length)]);
+                    break;
+                case 'harvest_crop':
+                    let v = currentInteraction.village;
+                    let idx = currentInteraction.index;
+                    v.crops.splice(idx, 1);
+                    world.drops.push({x: player.x, y: player.y, id: 'carrot', count: Math.floor(Math.random()*3)+1});
+                    break;
+            }
+        }
+
+        function showMessage(text) {
+            const msgBox = document.getElementById('message-box');
+            msgBox.innerText = text;
+            msgBox.style.display = 'block';
+            setTimeout(() => { msgBox.style.display = 'none'; }, 3000);
+        }
+
+        function spawnMobs() {
+            if(world.mobs.length < 20) {
+                let angle = Math.random() * Math.PI * 2;
+                let dist = 300 + Math.random() * 200;
+                let type = Math.random() > 0.3 ? 'zombie' : 'creeper';
+                world.mobs.push({
+                    x: player.x + Math.cos(angle) * dist,
+                    y: player.y + Math.sin(angle) * dist,
+                    type: type,
+                    hp: type==='zombie'?5:3,
+                    fuse: 0
+                });
+            }
+        }
+
+        function update() {
+            if(gameState.screen !== 'game') return;
+
+            // Movement
+            let dx = 0, dy = 0;
+            if(keys['w'] || keys['arrowup']) dy -= player.speed;
+            if(keys['s'] || keys['arrowdown']) dy += player.speed;
+            if(keys['a'] || keys['arrowleft']) dx -= player.speed;
+            if(keys['d'] || keys['arrowright']) dx += player.speed;
+
+            if(dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; } // Diagonal norm
+            
+            player.x += dx;
+            player.y += dy;
+
+            // Map boundaries
+            let limit = MAP_SIZE/2 - 20;
+            if(currentMap === 'overworld') {
+                if(player.x < -limit) player.x = -limit;
+                if(player.x > limit) player.x = limit;
+                if(player.y < -limit) player.y = -limit;
+                if(player.y > limit) player.y = limit;
+            } else {
+                // Interior boundaries
+                if(player.x < -150) player.x = -150;
+                if(player.x > 150) player.x = 150;
+                if(player.y < -150) player.y = -150;
+                if(player.y > 150) player.y = 150;
+            }
+
+            camera.x = player.x;
+            camera.y = player.y;
+
+            // Time & Night
+            gameState.time += 2;
+            if(gameState.time > 24000) gameState.time = 0;
+            gameState.isNight = gameState.time < 5000 || gameState.time > 19000;
+
+            if(currentMap === 'overworld') {
+                if(gameState.isNight && Math.random() < 0.02) spawnMobs();
+
+                // Mob AI
+                for(let i = world.mobs.length - 1; i >= 0; i--) {
+                    let mob = world.mobs[i];
+                    let dist = Math.hypot(mob.x - player.x, mob.y - player.y);
+                    
+                    if(dist < 500) {
+                        let mx = (player.x - mob.x) / dist;
+                        let my = (player.y - mob.y) / dist;
+                        mob.x += mx * (mob.type==='zombie'?1.5:2);
+                        mob.y += my * (mob.type==='zombie'?1.5:2);
+
+                        if(dist < 30) {
+                            if(mob.type === 'zombie') {
+                                player.hp -= 0.5;
+                                mob.x -= mx * 20; mob.y -= my * 20; // Recoil
+                            } else if(mob.type === 'creeper') {
+                                mob.fuse++;
+                                if(mob.fuse > 30) { // Explode
+                                    player.hp -= 4;
+                                    world.mobs.splice(i, 1);
+                                    continue;
+                                }
+                            }
+                        } else {
+                            if(mob.type === 'creeper') mob.fuse = 0;
+                        }
+                    } else if (!gameState.isNight) {
+                        // Burn in sunlight (zombies) or despawn
+                        mob.hp -= 0.1; 
+                        if(mob.hp <= 0) world.mobs.splice(i, 1);
+                    }
+                }
+
+                // Drops pickup
+                for(let i = world.drops.length - 1; i >= 0; i--) {
+                    let drop = world.drops[i];
+                    if(Math.hypot(drop.x - player.x, drop.y - player.y) < 40) {
+                        giveItem(drop.id, drop.count);
+                        world.drops.splice(i, 1);
+                    }
+                }
+
+                // Villager wandering
+                for(let v of world.villages) {
+                    for(let villager of v.villagers) {
+                        villager.timer--;
+                        if(villager.timer <= 0) {
+                            villager.vx = (Math.random()-0.5)*2;
+                            villager.vy = (Math.random()-0.5)*2;
+                            villager.timer = 60 + Math.random()*100;
+                        }
+                        villager.x += villager.vx;
+                        villager.y += villager.vy;
+                    }
+                }
+            }
+
+            if(player.hp <= 0) {
+                showMessage("¡Has Muerto! Reapareciendo...");
+                player.hp = player.maxHp;
+                player.x = 0; player.y = 0;
+                currentMap = 'overworld';
+                gameState.time = 6000;
+            }
+
+            // Hunger logic
+            if(Math.random() < 0.001) {
+                player.food -= 0.5;
+                if(player.food < 0) player.food = 0;
+                if(player.food === 0) player.hp -= 0.5;
+                updateHUD();
+            }
+
+            checkInteractions();
+            updateHUD();
+        }
+
+        function drawTextCenter(text, x, y, size) {
+            ctx.font = `${size}px VT323`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(text, x, y);
+        }
+
+        function draw() {
+            // Clear
+            ctx.fillStyle = currentMap === 'overworld' ? '#5a8f4c' : '#4a3d31';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            ctx.translate(width/2 - camera.x, height/2 - camera.y);
+
+            if(currentMap === 'overworld') {
+                // Draw Grid/Grass marks randomly
+                ctx.fillStyle = '#4c7c40';
+                for(let i=0; i<100; i++) {
+                    let gx = (i*137) % MAP_SIZE - MAP_SIZE/2;
+                    let gy = (i*251) % MAP_SIZE - MAP_SIZE/2;
+                    ctx.fillRect(gx, gy, 10, 10);
+                }
+
+                // Stones
+                ctx.font = "30px Arial";
+                world.rocks.forEach(r => drawTextCenter('🪨', r.x, r.y, 30));
+
+                // Trees
+                world.trees.forEach(t => {
+                    ctx.fillStyle = '#5c4033'; // trunk
+                    ctx.fillRect(t.x - 5, t.y, 10, 20);
+                    drawTextCenter('🌳', t.x, t.y - 10, 50);
+                });
+
+                // Houses (Exterior)
+                world.houses.forEach(h => {
+                    ctx.fillStyle = '#8b5a2b'; // Walls
+                    ctx.fillRect(h.x - h.width/2, h.y - h.height/2, h.width, h.height);
+                    ctx.fillStyle = '#654321'; // Roof
+                    ctx.fillRect(h.x - h.width/2 - 10, h.y - h.height/2 - 10, h.width + 20, h.height/2);
+                    ctx.fillStyle = '#3e2723'; // Door
+                    ctx.fillRect(h.x - 15, h.y + h.height/2 - 30, 30, 30);
+                });
+
+                // Villages
+                world.villages.forEach(v => {
+                    // Paths
+                    ctx.fillStyle = '#c2b280';
+                    ctx.fillRect(v.x - 80, v.y - 80, 160, 160);
+                    
+                    v.houses.forEach(h => {
+                        ctx.fillStyle = '#d2b48c'; // Hut
+                        ctx.fillRect(h.x - 30, h.y - 30, 60, 60);
+                        ctx.fillStyle = '#8b4513';
+                        ctx.fillRect(h.x - 35, h.y - 35, 70, 30); // roof
+                    });
+                    v.crops.forEach(c => drawTextCenter(c.ready ? '🥕' : '🌱', c.x, c.y, 20));
+                    v.villagers.forEach(vi => drawTextCenter('🧍‍♂️', vi.x, vi.y, 30));
+                });
+
+                // Mobs
+                world.mobs.forEach(m => {
+                    if(m.type === 'zombie') drawTextCenter('🧟', m.x, m.y, 35);
+                    else {
+                        drawTextCenter('🟩', m.x, m.y, 35 + m.fuse); // expands when blowing up
+                    }
+                });
+
+                // Drops
+                world.drops.forEach(d => {
+                    drawTextCenter(ITEMS[d.id].icon, d.x, d.y, 20);
+                });
+
+            } else if (currentMap === 'house') {
+                // Walls
+                ctx.strokeStyle = '#2c1e16'; ctx.lineWidth = 10;
+                ctx.strokeRect(-160, -160, 320, 320);
+                ctx.fillStyle = '#654321'; ctx.fillRect(-160, -160, 320, 320); // Floor
+
+                // Sofa
+                ctx.fillStyle = '#8B0000'; ctx.fillRect(-120, -50, 40, 80);
+                // Bed
+                ctx.fillStyle = '#fff'; ctx.fillRect(-120, -120, 50, 40);
+                ctx.fillStyle = 'red'; ctx.fillRect(-120, -120, 20, 40);
+                // Stairs
+                ctx.fillStyle = '#333';
+                for(let i=0; i<5; i++) ctx.fillRect(80 + i*10, -120 + i*10, 40, 10);
+                // Door (Exit)
+                ctx.fillStyle = '#3e2723'; ctx.fillRect(-20, 150, 40, 10);
+
+            } else if (currentMap === 'upstairs') {
+                ctx.strokeStyle = '#2c1e16'; ctx.lineWidth = 10;
+                ctx.strokeRect(-160, -160, 320, 320);
+                ctx.fillStyle = '#654321'; ctx.fillRect(-160, -160, 320, 320); // Floor
+                
+                // Stairs down
+                ctx.fillStyle = '#333';
+                for(let i=0; i<5; i++) ctx.fillRect(-20 + i*10, 120 + i*10, 40, 10);
+                
+                // Chest
+                drawTextCenter('📦', 0, -100, 50);
+            }
+
+            // Draw Player
+            drawTextCenter('🟦', player.x, player.y, 30); // Body
+            
+            // Draw Equipped item in hand
+            let equipped = player.inventory.hotbar[player.hotbarSelected];
+            if(equipped) {
+                ctx.save();
+                ctx.translate(player.x + 15, player.y);
+                drawTextCenter(ITEMS[equipped.id].icon, 0, 0, 20);
+                ctx.restore();
+            }
+
+            // Time Overlay
+            if(currentMap === 'overworld') {
+                let opacity = 0;
+                if(gameState.time > 18000) opacity = (gameState.time - 18000) / 6000 * 0.7;
+                else if(gameState.time < 6000) opacity = 0.7 - (gameState.time / 6000 * 0.7);
+                
+                ctx.fillStyle = `rgba(0, 0, 30, ${opacity})`;
+                ctx.fillRect(camera.x - width/2, camera.y - height/2, width, height);
+            }
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        initWorld();
+        initUI();
+        gameLoop();
+
+    </script>
+</body>
+</html>
