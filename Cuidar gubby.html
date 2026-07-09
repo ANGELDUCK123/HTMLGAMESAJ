@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuidar a Gubby</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #2c3e50;
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .hud-text {
+            position: absolute;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+        }
+        #money-display { top: 10px; left: 10px; color: gold; }
+        #hunger-display { top: 40px; left: 10px; color: #ff4757; }
+        #inventory-display { top: 70px; left: 10px; color: #7bed9f; }
+        #info-display { bottom: 10px; left: 10px; font-size: 16px; color: #dfe4ea; }
+        
+        /* Interfaz de la PC */
+        #pc-interface {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            background-color: #bdc3c7;
+            border: 4px solid #7f8c8d;
+            border-radius: 10px;
+            pointer-events: auto;
+            color: #2c3e50;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .pc-header {
+            background-color: #2980b9;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+        .close-btn {
+            background: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .pc-content {
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+        .app-icon {
+            width: 80px;
+            height: 80px;
+            background: #ecf0f1;
+            border: 2px solid #95a5a6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .app-icon:hover { background: #fff; }
+        #market-app, #news-app { display: none; padding: 10px; width: 100%; height: 300px; overflow-y: auto; background: white; border: 1px solid #ccc; }
+        .market-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .market-item button {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        /* Pantalla de Muerte */
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            color: red;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            pointer-events: auto;
+        }
+        #game-over h1 { font-size: 50px; }
+        #game-over button { padding: 10px 20px; font-size: 20px; cursor: pointer; }
+
+        /* Noche overlay */
+        #night-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 50, 0.6);
+            pointer-events: none;
+            display: none;
+            transition: opacity 2s;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+    <div id="night-overlay"></div>
+    
+    <div id="ui-layer">
+        <div id="money-display">💰 Pesos: 0</div>
+        <div id="hunger-display">🍔 Hambre Gubby: 100%</div>
+        <div id="inventory-display">🎒 Inv: []</div>
+        <div id="info-display">Controles: WASD mover | E: Interactuar | U: Agarrar/Soltar | X: Limpiar | P: Atacar | A: Pescar/Cocinar | Click en Gubby: Dinero</div>
+    </div>
+
+    <!-- PC Interface -->
+    <div id="pc-interface">
+        <div class="pc-header">
+            <span>💻 Windows Gubby 95</span>
+            <button class="close-btn" onclick="closePC()">X</button>
+        </div>
+        <div class="pc-content" id="pc-desktop">
+            <div class="app-icon" onclick="openApp('market')">🛒<br>Mercado</div>
+            <div class="app-icon" onclick="openApp('news')">📰<br>Noticias</div>
+        </div>
+        <div id="market-app">
+            <h3>Mercado en línea</h3>
+            <button onclick="backToDesktop()">🔙 Volver</button>
+            <div id="market-list"></div>
+        </div>
+        <div id="news-app">
+            <h3>Noticias de Hoy</h3>
+            <button onclick="backToDesktop()">🔙 Volver</button>
+            <p>- Meteoritos avistados cerca de la ciudad.</p>
+            <p>- Invasores buscan Gubbys indefensos.</p>
+            <p>- ¡El rascador reduce el estrés de tu Gubby!</p>
+        </div>
+    </div>
+
+    <!-- Game Over -->
+    <div id="game-over">
+        <h1>💀 TU GUBBY HA MUERTO 💀</h1>
+        <p>Su hambre llegó a 0.</p>
+        <button onclick="location.reload()">Reiniciar Juego</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // --- VARIABLES GLOBALES Y ESTADO ---
+    let gameState = {
+        pesos: 0,
+        inventario: [],
+        maxInv: 10,
+        doorUnlocked: false,
+        gubbyVivo: false, // Se activa cuando sale de la caja
+        isDay: true,
+        tvEncendida: false
+    };
+
+    let keys = {};
+    let mouse = { x: 0, y: 0, clicked: false };
+
+    let cameraX = 0;
+    let cameraY = 0;
+
+    // Tiempos reales solicitados (en milisegundos)
+    const TIME_DAY_NIGHT = 10 * 60 * 1000; // 10 minutos
+    const TIME_POOP = 4 * 60 * 1000; // 4 minutos
+    const TIME_SCRATCH = 3 * 60 * 1000; // 3 minutos
+    const TIME_METEOR = 15 * 60 * 1000; // 15 minutos (15-30 pedido)
+    const TIME_INVASION = 10 * 60 * 1000; // 10 minutos (después de llave)
+
+    // Tiempos rápidos para debug (descomentar para probar)
+    /*
+    const TIME_DAY_NIGHT = 30000;
+    const TIME_POOP = 10000;
+    const TIME_SCRATCH = 15000;
+    const TIME_METEOR = 20000;
+    const TIME_INVASION = 25000;
+    */
+
+    // --- CLASES ---
+
+    class Player {
+        constructor() {
+            this.x = 200; this.y = 300;
+            this.size = 30; this.speed = 5;
+            this.color = '#3498db';
+            this.holdingBox = false;
+            this.holdingItem = null;
+            this.fishingTimer = 0;
+            this.isFishing = false;
+            this.attackTimer = 0;
+            this.sitting = false;
+        }
+        draw() {
+            if (this.sitting) return; // Si está sentado, no se dibuja (se dibuja en el sillón)
+            ctx.fillStyle = this.color;
+            ctx.font = "30px Arial";
+            ctx.fillText("🧍", this.x, this.y + this.size);
+            
+            if (this.holdingBox) {
+                ctx.fillText("📦", this.x, this.y);
+            }
+            if (this.attackTimer > 0) {
+                ctx.fillText("🗡️", this.x + 20, this.y + 10);
+                this.attackTimer--;
+            }
+        }
+        update() {
+            if (this.sitting) {
+                if (keys['w'] || keys['a'] || keys['s'] || keys['d']) this.sitting = false;
+                return;
+            }
+            if (keys['w']) this.y -= this.speed;
+            if (keys['s']) this.y += this.speed;
+            if (keys['a']) this.x -= this.speed;
+            if (keys['d']) this.x += this.speed;
+
+            // Colisiones con paredes
+            let wallX = canvas.width/2 - 50;
+            if (!gameState.doorUnlocked && this.x > wallX) {
+                this.x = wallX; // No puede salir de la casa sin llave
+            }
+            // Paredes exteriores de la casa (solo si está dentro)
+            if (this.x <= wallX) {
+                if (this.x < 0) this.x = 0;
+                if (this.y < 0) this.y = 0;
+                if (this.y > canvas.height - this.size) this.y = canvas.height - this.size;
+            }
+
+            // Recoger dinero al tocarlo (Nueva mecánica)
+            for (let i = entities.length - 1; i >= 0; i--) {
+                let ent = entities[i];
+                if (ent instanceof Coin && dist(this, ent) < 40) {
+                    gameState.pesos += ent.val;
+                    spawnText("+" + ent.val, this.x, this.y - 20);
+                    entities.splice(i, 1);
+                }
+            }
+        }
+    }
+
+    class Gubby {
+        constructor(x, y) {
+            this.x = x; this.y = y;
+            this.size = 25;
+            this.hunger = 100;
+            this.moneyTimer = 0;
+            this.poopTimer = Date.now();
+            this.scratchTimer = Date.now();
+            this.lastHungerDrop = Date.now();
+            this.state = "idle";
+        }
+        draw() {
+            ctx.font = "25px Arial";
+            ctx.fillText("🐇", this.x, this.y + this.size);
+            // Barra de hambre arriba de Gubby
+            ctx.fillStyle = 'red';
+            ctx.fillRect(this.x, this.y - 10, 30, 5);
+            ctx.fillStyle = 'green';
+            ctx.fillRect(this.x, this.y - 10, (this.hunger/100)*30, 5);
+        }
+        update() {
+            // Movimiento aleatorio simple
+            if (Math.random() < 0.02 && this.state === "idle") {
+                this.x += (Math.random() - 0.5) * 20;
+                this.y += (Math.random() - 0.5) * 20;
+                // Mantener dentro de la casa primer piso
+                this.x = Math.max(50, Math.min(this.x, canvas.width/2 - 50));
+                this.y = Math.max(200, Math.min(this.y, canvas.height - 50));
+            }
+
+            // Hambre baja 1 cada 2 segundos
+            if (Date.now() - this.lastHungerDrop > 2000) {
+                this.hunger--;
+                this.lastHungerDrop = Date.now();
+                if (this.hunger <= 0) {
+                    document.getElementById('game-over').style.display = 'flex';
+                }
+            }
+
+            // Soltar dinero cada 5 segundos
+            this.moneyTimer++;
+            let moneyInterval = hasItemPlaced("Auto Clicker") ? 60 : 300; // 60 frames (1s) si autoclicker, si no 300 (5s)
+            if (this.moneyTimer > moneyInterval) {
+                entities.push(new Coin(this.x, this.y + 10, 1)); // Suelta 1 peso automático
+                this.moneyTimer = 0;
+            }
+
+            // Hacer caca cada 4 minutos
+            if (Date.now() - this.poopTimer > TIME_POOP) {
+                entities.push(new Poop(this.x, this.y));
+                this.poopTimer = Date.now();
+            }
+
+            // Rascarse cada 3 minutos (si hay rascador)
+            if (Date.now() - this.scratchTimer > TIME_SCRATCH && hasItemPlaced("Rascador")) {
+                let rascador = getStaticObj("Rascador");
+                if (rascador) {
+                    this.x = rascador.x; this.y = rascador.y;
+                    this.state = "scratching";
+                    setTimeout(() => {
+                        this.state = "idle";
+                        gameState.pesos += 50; // Da 50 pesos
+                        spawnText("+50 Pesos", this.x, this.y);
+                    }, 60000); // Está ahí 1 minuto
+                    this.scratchTimer = Date.now();
+                }
+            }
+        }
+    }
+
+    // --- ENTIDADES Y OBJETOS ---
+    let player = new Player();
+    let gubby = null;
+    let entities = []; // Monedas, Cacas, Cajas, Enemigos, Meteoritos
+    let npcs = []; // Sirvientes, Bingus
+    let floatingTexts = [];
+    
+    // Objetos estáticos
+    let staticObjects = [
+        { type: 'Couch', x: 100, y: 400, w: 80, h: 40, color: '#8e44ad', emoji: '🛋️' },
+        { type: 'TV', x: 100, y: 350, w: 60, h: 20, color: '#333', emoji: '📺' },
+        { type: 'Oven', x: 300, y: 250, w: 50, h: 50, color: '#bdc3c7', emoji: '🍳' },
+        { type: 'Desk', x: 50, y: 250, w: 80, h: 40, color: '#d35400', emoji: '🪑' },
+        { type: 'PC', x: 65, y: 240, w: 30, h: 20, color: '#ecf0f1', emoji: '💻' },
+        { type: 'Door', x: canvas.width/2 - 40, y: canvas.height/2, w: 20, h: 80, color: '#8b4513', emoji: '🚪' },
+        // Segundo piso
+        { type: 'Stairs', x: 50, y: 150, w: 40, h: 40, color: '#555', emoji: '🪜' },
+        { type: 'Table2F', x: 150, y: 50, w: 100, h: 40, color: '#c0392b', emoji: '🪑' },
+        // Afuera
+        { type: 'Lake', x: canvas.width - 200, y: 300, w: 150, h: 150, color: '#3498db', emoji: '🌊' },
+        { type: 'VendorFood', x: canvas.width/2 + 50, y: 200, w: 40, h: 40, color: 'pink', emoji: '🌭' },
+        { type: 'VendorSword', x: canvas.width/2 + 150, y: 200, w: 40, h: 40, color: 'gray', emoji: '⚔️' },
+        { type: 'VendorFish', x: canvas.width/2 + 250, y: 200, w: 40, h: 40, color: 'green', emoji: '🎣' }
+    ];
+
+    class Box {
+        constructor(x, y, content) {
+            this.x = x; this.y = y; this.content = content; this.size = 30;
+        }
+        draw() { ctx.font="30px Arial"; ctx.fillText("📦", this.x, this.y + this.size); }
+    }
+
+    class Coin {
+        constructor(x, y, val) { this.x = x; this.y = y; this.val = val; this.size = 15; }
+        draw() { ctx.font="20px Arial"; ctx.fillText("🪙", this.x, this.y + this.size); }
+    }
+
+    class Poop {
+        constructor(x, y) { this.x = x; this.y = y; this.size = 20; }
+        draw() { ctx.font="25px Arial"; ctx.fillText("💩", this.x, this.y + this.size); }
+    }
+
+    class Fish {
+        constructor(x, y) { this.x = x; this.y = y; this.size = 20; }
+        draw() { ctx.font="25px Arial"; ctx.fillText("🐟", this.x, this.y + this.size); }
+    }
+    
+    class MeteorRock {
+        constructor(x, y) { this.x = x; this.y = y; this.size = 25; }
+        draw() { ctx.font="25px Arial"; ctx.fillText("🪨", this.x, this.y + this.size); }
+    }
+
+    class Enemy {
+        constructor(x, y) { this.x = x; this.y = y; this.size = 30; this.speed = 1; }
+        draw() { ctx.font="30px Arial"; ctx.fillText("👾", this.x, this.y + this.size); }
+        update() {
+            if (gubby) {
+                if (this.x < gubby.x) this.x += this.speed;
+                if (this.x > gubby.x) this.x -= this.speed;
+                if (this.y < gubby.y) this.y += this.speed;
+                if (this.y > gubby.y) this.y -= this.speed;
+                
+                if (Math.abs(this.x - gubby.x) < 30 && Math.abs(this.y - gubby.y) < 30) {
+                    gubby.hunger = 0; // Mata al gubby al tocarlo
+                }
+            }
+        }
+    }
+
+    class DeliveryGuy {
+        constructor(targetX, targetY, itemData) {
+            this.x = canvas.width/2 - 20; // Entra por la puerta
+            this.y = canvas.height;
+            this.targetX = targetX; this.targetY = targetY;
+            this.item = itemData;
+            this.speed = 3;
+            this.delivered = false;
+        }
+        draw() { ctx.font="35px Arial"; ctx.fillText("👷", this.x, this.y); }
+        update() {
+            if (!this.delivered) {
+                if (this.y > this.targetY) this.y -= this.speed;
+                else {
+                    this.delivered = true;
+                    entities.push(new Box(this.x, this.y, this.item));
+                    spawnText("¡Paquete!", this.x, this.y);
+                }
+            } else {
+                this.y += this.speed; // Se va
+            }
+        }
+    }
+
+    // Helpers (Sirvientes / Bingus)
+    class HelperNPC {
+        constructor(type) {
+            this.x = 200; this.y = 300; this.type = type; this.speed = 2;
+        }
+        draw() {
+            let emoji = this.type === 'Bingus' ? "🐈" : (this.type === 'Sirviente' ? "🤵‍♂️" : "🤵‍♀️");
+            ctx.font="30px Arial"; ctx.fillText(emoji, this.x, this.y);
+        }
+        update() {
+            // Bingus recolecta dinero
+            if (this.type === 'Bingus') {
+                let target = entities.find(e => e instanceof Coin);
+                if (target) this.moveTo(target.x, target.y, () => {
+                    gameState.pesos += target.val;
+                    entities = entities.filter(e => e !== target);
+                });
+            } else { // Sirvientes limpian caca y alimentan
+                let target = entities.find(e => e instanceof Poop);
+                if (target) {
+                    this.moveTo(target.x, target.y, () => {
+                        gameState.pesos += 50;
+                        entities = entities.filter(e => e !== target);
+                        spawnText("Limpiado", this.x, this.y);
+                    });
+                } else if (gubby && gubby.hunger < 50) { // Alimentan si tiene menos de 50
+                    this.moveTo(gubby.x, gubby.y, () => {
+                        gubby.hunger = Math.min(100, gubby.hunger + 10);
+                    });
+                }
+            }
+        }
+        moveTo(tx, ty, callback) {
+            if (this.x < tx) this.x += this.speed;
+            if (this.x > tx) this.x -= this.speed;
+            if (this.y < ty) this.y += this.speed;
+            if (this.y > ty) this.y -= this.speed;
+            if (Math.abs(this.x - tx) < 5 && Math.abs(this.y - ty) < 5) callback();
+        }
+    }
+
+    // --- EVENTOS DEL JUEGO ---
+    
+    // 20 Segundos: Llega el Gubby
+    setTimeout(() => {
+        npcs.push(new DeliveryGuy(canvas.width/2 - 100, canvas.height/2, "Gubby"));
+    }, 20000); // 20 segundos
+
+    // Ciclo Día/Noche
+    setInterval(() => {
+        gameState.isDay = !gameState.isDay;
+        document.getElementById('night-overlay').style.display = gameState.isDay ? 'none' : 'block';
+    }, TIME_DAY_NIGHT);
+
+    // Meteoritos
+    setInterval(() => {
+        if (gameState.doorUnlocked) {
+            spawnText("¡LLUVIA DE METEORITOS!", canvas.width/2, 100);
+            for(let i=0; i<5; i++){
+                entities.push(new MeteorRock(canvas.width/2 + Math.random()*400, 100 + Math.random()*400));
+            }
+        }
+    }, TIME_METEOR);
+
+    // Invasiones
+    setInterval(() => {
+        if (gameState.doorUnlocked && gubby) {
+            spawnText("¡INVASIÓN!", canvas.width/2, 150);
+            for(let i=0; i<10; i++){
+                entities.push(new Enemy(canvas.width - 50, Math.random() * canvas.height));
+            }
+        }
+    }, TIME_INVASION);
+
+    // --- CONTROLES Y LÓGICA DE INTERACCIÓN ---
+
+    window.addEventListener('keydown', (e) => {
+        keys[e.key.toLowerCase()] = true;
+        let k = e.key.toLowerCase();
+
+        // U: Agarrar Caja / Soltar Caja / Soltar Item Inventario
+        if (k === 'u') {
+            if (player.holdingBox) {
+                player.holdingBox = false; // Suelta caja (se asume se destruye o se abre)
+            } else {
+                // Checar si hay caja cerca
+                let box = entities.find(ent => ent instanceof Box && dist(player, ent) < 50);
+                if (box) {
+                    player.holdingBox = true;
+                    entities = entities.filter(e => e !== box);
+                } else if (gameState.inventario.length > 0) {
+                    // Soltar último item del inventario
+                    let item = gameState.inventario.pop();
+                    if (item === 'Pescado') entities.push(new Fish(player.x, player.y));
+                    if (item === 'Comida' || item === 'Roca Cocinada') {
+                        // Crear entidad genérica soltada
+                        entities.push({type: 'DroppedFood', x: player.x, y: player.y, name: item, draw: function(){ ctx.fillText("🍲", this.x, this.y+20); }});
+                    }
+                    updateHUD();
+                }
+            }
+        }
+
+        // E: Interactuar (Abrir Caja, Usar PC, Cocinar, Alimentar Gubby, Sentarse, TV)
+        if (k === 'e') {
+            // 1. Abrir Caja (si la tienes)
+            if (player.holdingBox) {
+                player.holdingBox = false;
+                spawnItemFromBox("Gubby"); // Solo Gubby viene en la primera caja de historia, pero usaremos esto genérico
+                // En la lógica pedida, la caja inicial tiene al Gubby. 
+                // Las compras también llegan en cajas.
+            } else {
+                // 1.5 Abrir caja en el piso
+                let box = entities.find(ent => ent instanceof Box && dist(player, ent) < 50);
+                if (box) {
+                    entities = entities.filter(e => e !== box);
+                    spawnItemFromBox(box.content);
+                }
+            }
+
+            // 2. Usar PC
+            let pc = getStaticObj('PC');
+            if (pc && dist(player, pc) < 50) {
+                document.getElementById('pc-interface').style.display = 'block';
+            }
+
+            // 3. Sentarse Sillón
+            let couch = getStaticObj('Couch');
+            if (couch && dist(player, couch) < 50) {
+                player.sitting = !player.sitting;
+                if(player.sitting) { player.x = couch.x + 20; player.y = couch.y - 10; }
+            }
+
+            // 4. TV
+            let tv = getStaticObj('TV');
+            if (tv && dist(player, tv) < 50) {
+                gameState.tvEncendida = !gameState.tvEncendida;
+                tv.color = gameState.tvEncendida ? '#3498db' : '#333';
+            }
+
+            // 5. Cocinar Horno
+            let oven = getStaticObj('Oven');
+            if (oven && dist(player, oven) < 60 && gameState.inventario.length > 0) {
+                let itemIdx = gameState.inventario.findIndex(i => i === 'Pescado' || i === 'Comida' || i === 'Roca');
+                if (itemIdx > -1) {
+                    let item = gameState.inventario[itemIdx];
+                    gameState.inventario.splice(itemIdx, 1);
+                    spawnText("Cocinando...", player.x, player.y - 20);
+                    setTimeout(() => {
+                        let cooked = item === 'Pescado' ? 'Pescado Asado' : (item === 'Roca' ? 'Roca Cocinada' : 'Comida Caliente');
+                        if (gameState.inventario.length < gameState.maxInv) {
+                            gameState.inventario.push(cooked);
+                            updateHUD();
+                            spawnText("¡Listo!", player.x, player.y - 20);
+                        }
+                    }, 2000);
+                }
+            }
+
+            // 6. Dar comida a Gubby
+            if (gubby && dist(player, gubby) < 50) {
+                let foodIdx = gameState.inventario.findIndex(i => i.includes('Asado') || i.includes('Caliente') || i.includes('Cocinada') || i === 'Comida' || i === 'Pescado');
+                if (foodIdx > -1) {
+                    gameState.inventario.splice(foodIdx, 1);
+                    gubby.hunger = 100;
+                    spawnText("¡Yum!", gubby.x, gubby.y - 20);
+                    updateHUD();
+                }
+            }
+        }
+
+        // X: Limpiar Caca
+        if (k === 'x') {
+            let poopIdx = entities.findIndex(ent => ent instanceof Poop && dist(player, ent) < 50);
+            if (poopIdx > -1) {
+                entities.splice(poopIdx, 1);
+                gameState.pesos += 50;
+                spawnText("+50 Pesos", player.x, player.y);
+            }
+            
+            // También recoger objetos del suelo al inventario con X (rocas, comida dropeada)
+            let floorItemIdx = entities.findIndex(ent => (ent instanceof MeteorRock || ent.type === 'DroppedFood') && dist(player, ent) < 50);
+            if(floorItemIdx > -1 && gameState.inventario.length < gameState.maxInv) {
+                let item = entities[floorItemIdx];
+                gameState.inventario.push(item instanceof MeteorRock ? 'Roca' : item.name);
+                entities.splice(floorItemIdx, 1);
+                updateHUD();
+            }
+        }
+
+        // P: Atacar con Espada
+        if (k === 'p') {
+            player.attackTimer = 10; // Frames de animación
+            // Matar enemigos cerca
+            let toKill = entities.filter(ent => ent instanceof Enemy && dist(player, ent) < 60);
+            toKill.forEach(enemy => {
+                entities = entities.filter(e => e !== enemy);
+                spawnText("Muerto", enemy.x, enemy.y);
+            });
+        }
+
+        // A: Pescar / Recibir comida
+        if (k === 'a') {
+            let lake = getStaticObj('Lake');
+            if (lake && dist(player, {x: lake.x + lake.w/2, y: lake.y + lake.h/2}) < 150) {
+                if (!player.isFishing) {
+                    player.isFishing = true;
+                    spawnText("Pescando...", player.x, player.y - 20);
+                    setTimeout(() => {
+                        player.isFishing = false;
+                        entities.push(new Fish(player.x + 20, player.y + 20));
+                        spawnText("¡Pescado!", player.x, player.y - 20);
+                    }, 5000);
+                }
+            }
+        }
+
+        // Y: Recolectar Pescado al inventario
+        if (k === 'y') {
+            let fishIdx = entities.findIndex(ent => ent instanceof Fish && dist(player, ent) < 50);
+            if (fishIdx > -1 && gameState.inventario.length < gameState.maxInv) {
+                entities.splice(fishIdx, 1);
+                gameState.inventario.push("Pescado");
+                updateHUD();
+            }
+        }
+
+        // Interacción con Vendedores (Afuera)
+        // Comprar Comida, Espada, Caña (Cuestan poco: 10 pesos)
+        if (k === 'e' && gameState.doorUnlocked) {
+            let vFood = getStaticObj('VendorFood');
+            let vSword = getStaticObj('VendorSword');
+            let vFish = getStaticObj('VendorFish');
+            
+            if (vFood && dist(player, vFood) < 50 && gameState.pesos >= 10 && gameState.inventario.length < gameState.maxInv) {
+                gameState.pesos -= 10; gameState.inventario.push("Comida"); spawnText("-10p Comida", player.x, player.y); updateHUD();
+            }
+            if (vSword && dist(player, vSword) < 50 && gameState.pesos >= 10) {
+                gameState.pesos -= 10; spawnText("Espada Comprada", player.x, player.y); updateHUD(); // Espada es pasiva con P
+            }
+            if (vFish && dist(player, vFish) < 50 && gameState.pesos >= 10) {
+                gameState.pesos -= 10; spawnText("Caña Comprada", player.x, player.y); updateHUD(); // Caña pasiva con A
+            }
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        keys[e.key.toLowerCase()] = false;
+    });
+
+    // Clicks de mouse (Gubby dinero)
+    canvas.addEventListener('mousedown', (e) => {
+        let rect = canvas.getBoundingClientRect();
+        // Ajustamos la posición del mouse considerando la cámara
+        let mx = (e.clientX - rect.left) + cameraX;
+        let my = (e.clientY - rect.top) + cameraY;
+
+        if (gubby) {
+            if (Math.abs(mx - gubby.x) < 30 && Math.abs(my - gubby.y) < 30) {
+                gameState.pesos += 2; // Clickeas al gubby, da 2 pesos
+                spawnText("+2", mx, my);
+            }
+        }
+        
+        // Recoger dinero manual
+        let coinIdx = entities.findIndex(ent => ent instanceof Coin && Math.abs(mx - ent.x) < 30 && Math.abs(my - ent.y) < 30);
+        if (coinIdx > -1) {
+            gameState.pesos += entities[coinIdx].val;
+            entities.splice(coinIdx, 1);
+        }
+    });
+
+    function spawnItemFromBox(content) {
+        if (content === "Gubby" && !gameState.gubbyVivo) {
+            gubby = new Gubby(player.x, player.y);
+            gameState.gubbyVivo = true;
+        } else if (content === "Sirviente" || content === "Sirvienta" || content === "Bingus") {
+            npcs.push(new HelperNPC(content));
+        } else if (content === "Rascador") {
+            staticObjects.push({ type: 'Rascador', x: 200, y: 150, w: 40, h: 40, color: 'brown', emoji: '🪵' });
+        } else if (content === "Auto Clicker") {
+            staticObjects.push({ type: 'Auto Clicker', x: 250, y: 150, w: 30, h: 30, color: 'gold', emoji: '🖱️' });
+        } else if (content === "Comida") {
+            if(gameState.inventario.length < gameState.maxInv) gameState.inventario.push("Comida");
+        } else if (content === "Llave") {
+            gameState.doorUnlocked = true;
+            let door = getStaticObj('Door');
+            if(door) door.color = 'rgba(0,0,0,0)'; // Puerta "abierta" invisible
+            spawnText("¡Puerta Abierta!", player.x, player.y);
+        }
+        updateHUD();
+    }
+
+    // --- INTERFAZ PC (DOM) ---
+    const marketItems = [
+        { name: 'Comida', price: 20 },
+        { name: 'Rascador', price: 50 },
+        { name: 'Sirviente', price: 1000 },
+        { name: 'Sirvienta', price: 2000 },
+        { name: 'Sirvienta Pro', price: 3000 }, // Pedido en el prompt
+        { name: 'Bingus', price: 3000 },
+        { name: 'Auto Clicker', price: 7000 },
+        { name: 'Llave', price: 10000 }
+    ];
+
+    function initPC() {
+        const marketList = document.getElementById('market-list');
+        marketList.innerHTML = '';
+        marketItems.forEach(item => {
+            marketList.innerHTML += `
+                <div class="market-item">
+                    <span>${item.name} ($${item.price})</span>
+                    <button onclick="buyItem('${item.name}', ${item.price})">Comprar</button>
+                </div>
+            `;
+        });
+    }
+
+    function buyItem(name, price) {
+        if (gameState.pesos >= price) {
+            gameState.pesos -= price;
+            spawnText("Comprado. Espera...", canvas.width/2, 50);
+            // Mandar paquete después de unos segundos
+            setTimeout(() => {
+                npcs.push(new DeliveryGuy(canvas.width/2 - 50, canvas.height/2 + 50, name));
+            }, 3000); // 3 segundos para que llegue el repartidor
+        } else {
+            alert("No tienes dinero suficiente.");
+        }
+    }
+
+    function closePC() { document.getElementById('pc-interface').style.display = 'none'; }
+    function openApp(app) {
+        document.getElementById('pc-desktop').style.display = 'none';
+        if(app === 'market') document.getElementById('market-app').style.display = 'block';
+        if(app === 'news') document.getElementById('news-app').style.display = 'block';
+    }
+    function backToDesktop() {
+        document.getElementById('market-app').style.display = 'none';
+        document.getElementById('news-app').style.display = 'none';
+        document.getElementById('pc-desktop').style.display = 'flex';
+    }
+
+    // --- UTILIDADES ---
+    function dist(p1, p2) {
+        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+    function getStaticObj(type) {
+        return staticObjects.find(o => o.type === type);
+    }
+    function hasItemPlaced(type) {
+        return staticObjects.some(o => o.type === type);
+    }
+    function spawnText(text, x, y) {
+        floatingTexts.push({ text: text, x: x, y: y, timer: 60 });
+    }
+    
+    function checkTrophies() {
+        // Lógica de trofeos en el segundo piso (Arriba a la izquierda)
+        if (gameState.pesos >= 10000 && !hasItemPlaced('Trofeo10k')) {
+            staticObjects.push({ type: 'Trofeo10k', x: 150, y: 30, w: 20, h: 20, color: 'gold', emoji: '🏆' });
+            spawnText("¡Trofeo Desbloqueado!", 150, 50);
+        }
+    }
+
+    function updateHUD() {
+        document.getElementById('money-display').innerText = `💰 Pesos: ${gameState.pesos}`;
+        if (gubby) {
+            document.getElementById('hunger-display').innerText = `🍔 Hambre Gubby: ${gubby.hunger}%`;
+        }
+        document.getElementById('inventory-display').innerText = `🎒 Inv: [${gameState.inventario.join(', ')}]`;
+    }
+
+    // --- DIBUJADO Y LOOP PRINCIPAL ---
+    function drawMap() {
+        // Fondo base (Pasto afuera) - Mundo expandido
+        ctx.fillStyle = '#27ae60';
+        ctx.fillRect(-5000, -5000, 10000, 10000);
+
+        // Casa Interior (Primer Piso)
+        ctx.fillStyle = '#95a5a6';
+        ctx.fillRect(0, 200, canvas.width/2, canvas.height - 200);
+        // Pared divisora derecha
+        ctx.fillStyle = '#34495e';
+        ctx.fillRect(canvas.width/2 - 10, 200, 20, canvas.height - 200);
+
+        // Casa Interior (Segundo Piso)
+        ctx.fillStyle = '#7f8c8d';
+        ctx.fillRect(0, 0, canvas.width/2, 190);
+        // Piso entre 1ro y 2do
+        ctx.fillStyle = '#2c3e50';
+        ctx.fillRect(0, 190, canvas.width/2, 10);
+        ctx.fillStyle = 'white';
+        ctx.font = "15px Arial";
+        ctx.fillText("Segundo Piso (Trofeos)", 10, 20);
+
+        // Objetos estáticos
+        staticObjects.forEach(obj => {
+            if(obj.color !== 'rgba(0,0,0,0)') { // Si no es invisible
+                ctx.fillStyle = obj.color;
+                if (obj.emoji) {
+                    ctx.font = "30px Arial";
+                    ctx.fillText(obj.emoji, obj.x, obj.y + obj.h/2 + 10);
+                } else {
+                    ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+                }
+            }
+        });
+    }
+
+    function gameLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Calcular cámara para seguir al jugador
+        cameraX = player.x - canvas.width / 2;
+        cameraY = player.y - canvas.height / 2;
+
+        ctx.save();
+        // Movemos el lienzo según la posición de la cámara
+        ctx.translate(-cameraX, -cameraY);
+
+        drawMap();
+
+        player.update();
+        player.draw();
+
+        if (gubby) {
+            gubby.update();
+            gubby.draw();
+        }
+
+        // Actualizar y dibujar npcs (repartidores, sirvientes)
+        for (let i = npcs.length - 1; i >= 0; i--) {
+            npcs[i].update();
+            npcs[i].draw();
+            // Limpiar npcs que se van (repartidores arriba de la pantalla) expandido por la cámara
+            if (npcs[i].y < -500 || npcs[i].y > canvas.height + 500) npcs.splice(i, 1);
+        }
+
+        // Dibujar entidades (monedas, cacas, cajas, enemigos, meteoros)
+        for (let i = entities.length - 1; i >= 0; i--) {
+            if(entities[i].update) entities[i].update(); // Enemigos se mueven
+            entities[i].draw();
+        }
+
+        // Textos flotantes
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "yellow";
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            let ft = floatingTexts[i];
+            ctx.fillText(ft.text, ft.x, ft.y);
+            ft.y -= 0.5;
+            ft.timer--;
+            if (ft.timer <= 0) floatingTexts.splice(i, 1);
+        }
+
+        ctx.restore(); // Restauramos la cámara para no afectar la Interfaz (HUD)
+
+        checkTrophies();
+        
+        // Actualizar HUD cada frame (no óptimo pero seguro para este caso)
+        if(Math.random() < 0.1) updateHUD();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Iniciar PC
+    initPC();
+    // Iniciar Juego
+    gameLoop();
+
+</script>
+</body>
+</html>
