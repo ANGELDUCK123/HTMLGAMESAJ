@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Programador 2D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        canvas { display: block; }
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .interactive-ui { pointer-events: auto; }
+        
+        /* Estilos personalizados para el PC */
+        .pc-screen { background: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=1000') center/cover; }
+        .window { box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        
+        /* Efecto de TV estática */
+        .tv-static { background: repeating-linear-gradient(0deg, #111, #333 1px, #111 2px); animation: tvFlicker 0.1s infinite; }
+        @keyframes tvFlicker { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+
+    <!-- Lienzo del Juego -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Interfaz Principal (HUD) -->
+    <div id="hud" class="ui-layer flex flex-col p-4">
+        <div class="bg-gray-900 bg-opacity-80 text-white p-4 rounded-lg w-64 shadow-lg border border-gray-700 pointer-events-auto">
+            <h2 class="text-xl font-bold mb-2 text-blue-400">Estado</h2>
+            <div class="mb-2">
+                <div class="flex justify-between text-sm"><span>Hambre</span><span id="hunger-val">100%</span></div>
+                <div class="w-full bg-gray-700 h-2 rounded"><div id="hunger-bar" class="bg-red-500 h-2 rounded" style="width: 100%"></div></div>
+            </div>
+            <div class="mb-2">
+                <div class="flex justify-between text-sm"><span>Sed</span><span id="thirst-val">100%</span></div>
+                <div class="w-full bg-gray-700 h-2 rounded"><div id="thirst-bar" class="bg-blue-500 h-2 rounded" style="width: 100%"></div></div>
+            </div>
+            <div class="flex justify-between items-center mt-3 pt-2 border-t border-gray-600">
+                <span class="text-green-400 font-bold"><i class="fas fa-dollar-sign"></i> <span id="money-val">50</span></span>
+                <span class="text-yellow-400 text-sm"><i class="fas fa-clock"></i> <span id="time-val">Día</span></span>
+            </div>
+        </div>
+        
+        <div class="mt-4 bg-gray-900 bg-opacity-80 text-white p-4 rounded-lg w-64 shadow-lg border border-gray-700 pointer-events-auto">
+            <h2 class="text-lg font-bold mb-2 text-purple-400">Inventario</h2>
+            <div id="inventory-list" class="text-sm space-y-1">
+                <!-- Items de inventario aquí -->
+            </div>
+            <p class="text-xs text-gray-400 mt-2">Haz clic en los objetos para consumirlos.</p>
+        </div>
+        
+        <div id="interaction-prompt" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 bg-white text-black px-6 py-2 rounded-full font-bold shadow-lg hidden text-lg transition-all">
+            Presiona E para interactuar
+        </div>
+        <div id="tv-prompt" class="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hidden text-lg transition-all">
+            Presiona T para encender la TV
+        </div>
+        <div id="pc-prompt" class="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hidden text-lg transition-all">
+            Presiona Y para encender la PC
+        </div>
+    </div>
+
+    <!-- UI: Interfaz del PC -->
+    <div id="pc-ui" class="ui-layer interactive-ui hidden flex items-center justify-center bg-black bg-opacity-70">
+        <div class="w-4/5 h-4/5 bg-gray-800 rounded-lg shadow-2xl flex flex-col border-4 border-gray-600 relative overflow-hidden pc-screen">
+            <!-- Barra superior PC -->
+            <div class="bg-gray-900 text-white px-4 py-2 flex justify-between items-center border-b border-gray-700">
+                <span class="font-bold"><i class="fab fa-windows text-blue-400"></i> MyOS 10</span>
+                <button onclick="closePC()" class="text-red-500 hover:text-red-400 font-bold text-xl"><i class="fas fa-times-circle"></i></button>
+            </div>
+            
+            <!-- Escritorio -->
+            <div class="flex-1 p-6 flex flex-col gap-6 flex-wrap relative" id="desktop">
+                <div class="w-20 flex flex-col items-center cursor-pointer text-white hover:bg-white hover:bg-opacity-20 p-2 rounded" onclick="openApp('dev')">
+                    <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-2xl mb-1 shadow"><i class="fas fa-code"></i></div>
+                    <span class="text-xs font-semibold drop-shadow-md text-center">DevStudio</span>
+                </div>
+                <div class="w-20 flex flex-col items-center cursor-pointer text-white hover:bg-white hover:bg-opacity-20 p-2 rounded" onclick="openApp('messages')">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center text-2xl mb-1 shadow"><i class="fas fa-comments"></i></div>
+                    <span class="text-xs font-semibold drop-shadow-md text-center">Mensajes</span>
+                </div>
+                <div class="w-20 flex flex-col items-center cursor-pointer text-white hover:bg-white hover:bg-opacity-20 p-2 rounded" onclick="openApp('store')">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center text-2xl mb-1 shadow"><i class="fas fa-shopping-cart"></i></div>
+                    <span class="text-xs font-semibold drop-shadow-md text-center">Súper</span>
+                </div>
+                <div class="w-20 flex flex-col items-center cursor-pointer text-white hover:bg-white hover:bg-opacity-20 p-2 rounded" onclick="openApp('news')">
+                    <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center text-2xl mb-1 shadow"><i class="fas fa-newspaper"></i></div>
+                    <span class="text-xs font-semibold drop-shadow-md text-center">Noticias</span>
+                </div>
+            </div>
+
+            <!-- Ventana de Apps -->
+            <div id="app-window" class="absolute top-10 left-10 right-10 bottom-10 bg-white rounded-lg shadow-2xl flex flex-col hidden window">
+                <div class="bg-gray-200 px-4 py-2 flex justify-between items-center rounded-t-lg border-b">
+                    <span id="app-title" class="font-bold text-gray-700">App</span>
+                    <button onclick="closeApp()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="app-content" class="flex-1 overflow-auto bg-gray-50 relative">
+                    <!-- El contenido de la app se inyecta aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI: Televisión -->
+    <div id="tv-ui" class="ui-layer interactive-ui hidden flex items-center justify-center bg-black bg-opacity-90 z-50">
+        <div class="w-[800px] h-[500px] bg-black border-[16px] border-gray-800 rounded-xl relative shadow-2xl flex flex-col justify-end">
+            <div id="tv-screen" class="absolute top-0 left-0 w-full h-full tv-static flex items-center justify-center text-white text-3xl font-bold text-center p-10">
+                NO SIGNAL
+            </div>
+            <div class="absolute top-4 right-6 text-green-400 font-mono text-2xl drop-shadow-md z-10" id="tv-channel-display">CH 1</div>
+            <div class="absolute bottom-4 left-6 text-blue-400 font-mono text-xl drop-shadow-md z-10 bg-black bg-opacity-50 px-2 rounded hidden" id="tv-vol-display">VOL <span id="tv-vol-val">50</span>%</div>
+            
+            <div class="absolute -right-24 top-0 flex flex-col gap-4">
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col gap-2 shadow-lg border border-gray-700">
+                    <p class="text-white text-center text-xs font-bold border-b border-gray-600 pb-1">CANAL</p>
+                    <button onclick="changeChannel(1)" class="bg-gray-700 text-white hover:bg-gray-600 p-2 rounded"><i class="fas fa-chevron-up"></i></button>
+                    <button onclick="changeChannel(-1)" class="bg-gray-700 text-white hover:bg-gray-600 p-2 rounded"><i class="fas fa-chevron-down"></i></button>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-lg flex flex-col gap-2 shadow-lg border border-gray-700">
+                    <p class="text-white text-center text-xs font-bold border-b border-gray-600 pb-1">VOL</p>
+                    <button onclick="changeVolume(10)" class="bg-gray-700 text-white hover:bg-gray-600 p-2 rounded"><i class="fas fa-plus"></i></button>
+                    <button onclick="changeVolume(-10)" class="bg-gray-700 text-white hover:bg-gray-600 p-2 rounded"><i class="fas fa-minus"></i></button>
+                </div>
+                <button onclick="closeTV()" class="bg-red-600 text-white hover:bg-red-500 p-3 rounded-lg font-bold shadow-lg mt-4"><i class="fas fa-power-off"></i> APAGAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI: Tienda Calle -->
+    <div id="shop-ui" class="ui-layer interactive-ui hidden flex items-center justify-center bg-black bg-opacity-50 z-40">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-[500px] border-4 border-blue-500">
+            <div class="flex justify-between items-center border-b-2 border-gray-200 pb-3 mb-4">
+                <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-store text-blue-500"></i> Mini-Market Don Juan</h2>
+                <button onclick="closeShop()" class="text-gray-500 hover:text-red-500 text-xl"><i class="fas fa-times"></i></button>
+            </div>
+            <p class="text-gray-600 mb-4 italic">"¿Qué va a llevar joven? Todo fresco."</p>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="buyItem('Agua', 5, 0, 30)" class="bg-blue-100 hover:bg-blue-200 p-3 rounded-lg flex justify-between items-center border border-blue-300">
+                    <span><i class="fas fa-tint text-blue-500"></i> Botella de Agua</span><span class="font-bold text-green-600">$5</span>
+                </button>
+                <button onclick="buyItem('Chetos', 8, 15, -5)" class="bg-orange-100 hover:bg-orange-200 p-3 rounded-lg flex justify-between items-center border border-orange-300">
+                    <span><i class="fas fa-cookie text-orange-500"></i> Chetos</span><span class="font-bold text-green-600">$8</span>
+                </button>
+                <button onclick="buyItem('Doritos', 10, 20, -5)" class="bg-red-100 hover:bg-red-200 p-3 rounded-lg flex justify-between items-center border border-red-300">
+                    <span><i class="fas fa-pizza-slice text-red-500"></i> Doritos</span><span class="font-bold text-green-600">$10</span>
+                </button>
+                <button onclick="buyItem('Pizza', 25, 50, -10)" class="bg-yellow-100 hover:bg-yellow-200 p-3 rounded-lg flex justify-between items-center border border-yellow-300">
+                    <span><i class="fas fa-hamburger text-yellow-500"></i> Pizza Entera</span><span class="font-bold text-green-600">$25</span>
+                </button>
+            </div>
+            <div class="mt-6 text-right">
+                <span class="font-bold text-gray-700">Tu Dinero: <span class="text-green-600" id="shop-money">$50</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI: Diálogo NPCs -->
+    <div id="dialogue-ui" class="ui-layer interactive-ui hidden flex items-end justify-center pb-10 z-40">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-2/3 border-4 border-gray-800 flex gap-6 relative">
+            <div class="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center text-4xl overflow-hidden border-2 border-gray-400" id="npc-avatar">
+                👤
+            </div>
+            <div class="flex-1">
+                <h3 class="text-xl font-bold text-blue-600 mb-2" id="npc-name">Persona</h3>
+                <p class="text-gray-800 text-lg" id="npc-text">Hola, ¿cómo estás?</p>
+            </div>
+            <button onclick="closeDialogue()" class="absolute -top-4 -right-4 bg-red-500 text-white w-10 h-10 rounded-full font-bold shadow hover:bg-red-600 border-2 border-white">X</button>
+        </div>
+    </div>
+
+    <!-- UI: Pantalla de Muerte -->
+    <div id="death-ui" class="ui-layer interactive-ui hidden flex flex-col items-center justify-center bg-black bg-opacity-90 z-[100]">
+        <h1 class="text-6xl font-black text-red-600 mb-6 drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]">HAS MUERTO</h1>
+        <p class="text-2xl text-white mb-10" id="death-reason">Fuiste atropellado por un auto.</p>
+        <div class="bg-gray-800 p-8 rounded-lg border-2 border-gray-600 shadow-2xl text-center">
+            <h2 class="text-xl text-yellow-400 font-bold mb-6">¿Quieres otra oportunidad?</h2>
+            <div class="flex justify-center gap-6">
+                <button onclick="handleDeathChoice(true)" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">Sí</button>
+                <button onclick="handleDeathChoice(false)" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-lg text-xl shadow-lg transition-transform transform hover:scale-105">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI: Cuarto Oscuro / Interrogatorio -->
+    <div id="quiz-ui" class="ui-layer interactive-ui hidden flex items-center justify-center bg-black z-[100]">
+        <!-- Efecto de luz de foco -->
+        <div class="absolute w-[600px] h-[600px] bg-white opacity-10 rounded-full blur-[100px] top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+        
+        <div class="w-full max-w-2xl text-center relative z-10 flex flex-col items-center">
+            <div class="text-6xl mb-6 drop-shadow-lg filter grayscale opacity-80">🕵️‍♂️</div>
+            <p class="text-red-500 font-mono text-sm mb-2 opacity-70">--- INTERROGATORIO ALMA #8492 ---</p>
+            <h2 id="quiz-question" class="text-3xl text-white font-serif mb-10 leading-relaxed shadow-black drop-shadow-md">"¿Por qué debería devolverte a la vida?"</h2>
+            <div id="quiz-options" class="flex flex-col gap-4 w-full px-10">
+                <!-- Botones inyectados vía JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de Lógica del Juego -->
+    <script>
+        // === CONFIGURACIÓN Y ESTADO INICIAL ===
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        // Resize
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        });
+
+        const STATE = {
+            PLAYING: 'playing',
+            PC: 'pc',
+            TV: 'tv',
+            SHOP: 'shop',
+            DIALOGUE: 'dialogue',
+            DEAD: 'dead',
+            GHOST: 'ghost',
+            QUIZ: 'quiz'
+        };
+
+        let gameState = STATE.PLAYING;
+        let currentMap = 'house'; // 'house', 'city', 'quiz_room'
+        
+        let timeOfDay = 0; // 0 a 600,000 ms (10 min). Mitad día, mitad noche
+        const TEN_MINUTES_MS = 600 * 1000;
+        let isNight = false;
+
+        // Jugador
+        const player = {
+            x: 200, y: 200, w: 24, h: 24, 
+            speed: 5, color: '#3b82f6',
+            hunger: 100, thirst: 100, money: 50,
+            seated: false,
+            inventory: [],
+            // Para movimiento animado
+            dirX: 0, dirY: 0
+        };
+
+        // Teclado
+        const keys = {};
+        const keysPressed = {}; // Para evitar que presionar mantenga la acción
+        
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if(!keysPressed[e.key.toLowerCase()]) {
+                handleSinglePress(e.key.toLowerCase());
+                keysPressed[e.key.toLowerCase()] = true;
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+            keysPressed[e.key.toLowerCase()] = false;
+        });
+
+        // === DEFINICIÓN DE MAPAS Y ENTIDADES ===
+        
+        // Colores temáticos
+        const colors = {
+            wall: '#374151', floorHouse: '#d1d5db',
+            road: '#4b5563', sidewalk: '#9ca3af', grass: '#4ade80',
+            bed: '#3b82f6', desk: '#8b5cf6', couch: '#ef4444', 
+            tv: '#111827', table: '#d97706', chair: '#f59e0b', door: '#10b981'
+        };
+
+        const maps = {
+            house: {
+                spawn: {x: 200, y: 200},
+                objects: [
+                    // Paredes perimetrales
+                    { type: 'wall', x: 50, y: 50, w: 700, h: 20, color: colors.wall },
+                    { type: 'wall', x: 50, y: 50, w: 20, h: 500, color: colors.wall },
+                    { type: 'wall', x: 50, y: 530, w: 300, h: 20, color: colors.wall },
+                    { type: 'wall', x: 450, y: 530, w: 300, h: 20, color: colors.wall },
+                    { type: 'wall', x: 730, y: 50, w: 20, h: 500, color: colors.wall },
+                    
+                    // Puerta de salida
+                    { type: 'door', dest: 'city', destX: 400, destY: 570, x: 350, y: 520, w: 100, h: 40, color: colors.door, label: 'Salir' },
+                    
+                    // Muebles
+                    { type: 'bed', x: 100, y: 100, w: 80, h: 120, color: colors.bed, label: 'Cama' },
+                    { type: 'desk', x: 100, y: 300, w: 60, h: 100, color: colors.desk, label: 'Escritorio (PC)' },
+                    { type: 'tv', x: 600, y: 100, w: 100, h: 30, color: colors.tv, label: 'TV' },
+                    { type: 'couch', x: 600, y: 200, w: 100, h: 50, color: colors.couch, label: 'Sillón' },
+                    { type: 'table', x: 400, y: 350, w: 100, h: 80, color: colors.table, label: 'Mesa' },
+                    { type: 'chair', x: 360, y: 370, w: 30, h: 40, color: colors.chair, label: 'Silla' },
+                    { type: 'chair', x: 510, y: 370, w: 30, h: 40, color: colors.chair, label: 'Silla' }
+                ]
+            },
+            city: {
+                spawn: {x: 400, y: 600}, // Afuera de la casa
+                objects: [
+                    // Casa (Exterior)
+                    { type: 'wall', x: 200, y: 200, w: 400, h: 300, color: '#475569' },
+                    { type: 'door', dest: 'house', destX: 400, destY: 480, x: 350, y: 500, w: 100, h: 30, color: colors.door, label: 'Entrar a Casa' },
+                    
+                    // Tienda
+                    { type: 'wall', x: 800, y: 200, w: 300, h: 250, color: '#0ea5e9' },
+                    { type: 'shopDoor', x: 900, y: 450, w: 100, h: 30, color: '#fcd34d', label: 'Tienda Don Juan' },
+                ]
+            }
+        };
+
+        // Carretera de la ciudad (dibujada dinámicamente)
+        const road = { x: 0, y: 650, w: 2000, h: 200 };
+
+        // Autos
+        let cars = [];
+        const carColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ffffff'];
+
+        // NPCs
+        let npcs = [
+            { x: 300, y: 600, w: 24, h: 24, dx: 1, color: '#ec4899', name: 'Vecina', text: '¡Hace un clima hermoso hoy! Lástima que te la pases en la compu.', avatar: '👩' },
+            { x: 700, y: 580, w: 24, h: 24, dx: -1, color: '#f59e0b', name: 'Familia (Papá)', text: 'Hijo, recuerda comer bien. Programar todo el día te hará daño.', avatar: '👨' },
+            { x: 1000, y: 620, w: 24, h: 24, dx: 1.5, color: '#14b8a6', name: 'Repartidor', text: 'Con permiso, llevo prisa. ¡Cuidado al cruzar la calle!', avatar: '🛵' },
+            { x: 150, y: 550, w: 24, h: 24, dx: -0.5, color: '#8b5cf6', name: 'Abuela', text: 'Mi niño, te veo muy flaco. Deberías ir a la tienda a comprar algo.', avatar: '👵' }
+        ];
+
+        // === MECÁNICAS PRINCIPALES ===
+
+        function handleSinglePress(key) {
+            if (gameState === STATE.GHOST) return; // Fantasma no interactúa
+            
+            if (gameState === STATE.PLAYING) {
+                if (key === 'e') {
+                    interact();
+                } else if (key === 't') {
+                    const tv = getNearestOfType('tv');
+                    if (tv && player.seated && distance(player, tv) < 150) {
+                        openTV();
+                    }
+                } else if (key === 'y') {
+                    const desk = getNearestOfType('desk');
+                    if (desk && distance(player, desk) < 80) {
+                        openPC();
+                    }
+                }
+            } else if (gameState === STATE.PC && key === 'y') {
+                closePC();
+            } else if (gameState === STATE.TV && key === 't') {
+                closeTV();
+            }
+        }
+
+        function getNearestInteractable() {
+            if (!maps[currentMap]) return null;
+            let nearest = null;
+            let minDist = 100; // Radio de interacción
+            
+            maps[currentMap].objects.forEach(obj => {
+                if (obj.type === 'wall') return; // Ignorar paredes
+                let d = distance(player, obj);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = obj;
+                }
+            });
+
+            // NPCs (solo en ciudad)
+            if (currentMap === 'city') {
+                npcs.forEach(npc => {
+                    let d = distance(player, npc);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = { ...npc, type: 'npc' };
+                    }
+                });
+            }
+
+            return nearest;
+        }
+
+        function getNearestOfType(type) {
+            let obj = maps[currentMap].objects.find(o => o.type === type);
+            return obj || null;
+        }
+
+        function distance(r1, r2) {
+            let cx1 = r1.x + r1.w/2;
+            let cy1 = r1.y + r1.h/2;
+            let cx2 = (r2.w ? r2.x + r2.w/2 : r2.x);
+            let cy2 = (r2.h ? r2.y + r2.h/2 : r2.y);
+            return Math.hypot(cx1 - cx2, cy1 - cy2);
+        }
+
+        function checkCollisions(newX, newY) {
+            if (gameState === STATE.GHOST) return false; // Fantasmas atraviesan todo
+            
+            let rect1 = { x: newX, y: newY, w: player.w, h: player.h };
+            for (let obj of maps[currentMap].objects) {
+                if (obj.type !== 'door' && obj.type !== 'shopDoor') { // Se puede caminar sobre puertas
+                    if (rectIntersect(rect1, obj)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function rectIntersect(r1, r2) {
+            return !(r2.x > r1.x + r1.w || 
+                     r2.x + r2.w < r1.x || 
+                     r2.y > r1.y + r1.h ||
+                     r2.y + r2.h < r1.y);
+        }
+
+        function interact() {
+            let obj = getNearestInteractable();
+            if (!obj) return;
+
+            if (obj.type === 'door') {
+                currentMap = obj.dest;
+                player.x = obj.destX;
+                player.y = obj.destY;
+                player.seated = false;
+            } 
+            else if (obj.type === 'shopDoor') {
+                openShop();
+            }
+            else if (obj.type === 'couch' || obj.type === 'chair') {
+                player.seated = !player.seated;
+                if (player.seated) {
+                    player.x = obj.x + obj.w/2 - player.w/2;
+                    player.y = obj.y + obj.h/2 - player.h/2;
+                }
+            }
+            else if (obj.type === 'bed') {
+                if (isNight) {
+                    // Dormir acelera hasta el día
+                    timeOfDay = 0; // Reset a inicio del día
+                    player.hunger = Math.max(0, player.hunger - 20); // Da hambre al despertar
+                    player.thirst = Math.max(0, player.thirst - 20);
+                    showNotification("Dormiste bien. ¡Es de día!");
+                } else {
+                    showNotification("No tienes sueño, es de día.");
+                }
+            }
+            else if (obj.type === 'npc') {
+                openDialogue(obj);
+            }
+        }
+
+        function die(reason) {
+            if (gameState === STATE.GHOST) return; // Ya está muerto
+            
+            gameState = STATE.DEAD;
+            document.getElementById('death-reason').innerText = reason;
+            document.getElementById('death-ui').classList.remove('hidden');
+        }
+
+        function handleDeathChoice(wantsRetry) {
+            document.getElementById('death-ui').classList.add('hidden');
+            if (!wantsRetry) {
+                gameState = STATE.GHOST;
+                player.isGhost = true;
+                player.color = 'rgba(255, 255, 255, 0.4)';
+                showNotification("Eres un fantasma. Nadie puede verte.");
+            } else {
+                startQuiz();
+            }
+        }
+
+        function updateStats() {
+            if (gameState === STATE.DEAD || gameState === STATE.GHOST || gameState === STATE.QUIZ) return;
+
+            // Decaimiento natural (100% dura aprox 5 min reales)
+            player.hunger -= 0.005;
+            player.thirst -= 0.007;
+
+            if (player.hunger <= 0) die("Moriste de hambre en tu escritorio.");
+            if (player.thirst <= 0) die("Moriste de deshidratación severa.");
+
+            document.getElementById('hunger-val').innerText = Math.floor(player.hunger) + '%';
+            document.getElementById('hunger-bar').style.width = Math.max(0, player.hunger) + '%';
+            document.getElementById('hunger-bar').className = `h-2 rounded ${player.hunger < 20 ? 'bg-red-600 animate-pulse' : 'bg-red-500'}`;
+            
+            document.getElementById('thirst-val').innerText = Math.floor(player.thirst) + '%';
+            document.getElementById('thirst-bar').style.width = Math.max(0, player.thirst) + '%';
+            document.getElementById('thirst-bar').className = `h-2 rounded ${player.thirst < 20 ? 'bg-blue-700 animate-pulse' : 'bg-blue-500'}`;
+
+            document.getElementById('money-val').innerText = player.money;
+
+            // Tiempo
+            timeOfDay += 16.66; // aprox 60fps
+            if (timeOfDay >= TEN_MINUTES_MS) {
+                timeOfDay = 0; // Reset
+            }
+            isNight = timeOfDay > (TEN_MINUTES_MS / 2);
+            document.getElementById('time-val').innerHTML = isNight ? '<i class="fas fa-moon text-blue-300"></i> Noche' : '<i class="fas fa-sun text-yellow-400"></i> Día';
+        }
+
+        function showNotification(msg) {
+            const prompt = document.getElementById('interaction-prompt');
+            prompt.innerText = msg;
+            prompt.classList.remove('hidden');
+            setTimeout(() => { prompt.classList.add('hidden'); }, 3000);
+        }
+
+        // === ACTUALIZACIÓN (GAME LOOP) ===
+
+        function update() {
+            if (gameState === STATE.PLAYING || gameState === STATE.GHOST) {
+                // Movimiento
+                let dx = 0, dy = 0;
+                if (!player.seated) {
+                    if (keys['w'] || keys['arrowup']) dy -= player.speed;
+                    if (keys['s'] || keys['arrowdown']) dy += player.speed;
+                    if (keys['a'] || keys['arrowleft']) dx -= player.speed;
+                    if (keys['d'] || keys['arrowright']) dx += player.speed;
+                } else if (keys['w'] || keys['s'] || keys['a'] || keys['d'] || keys['arrowup'] || keys['arrowdown'] || keys['arrowleft'] || keys['arrowright']) {
+                    player.seated = false; // Levantarse al moverse
+                }
+
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.707; // Normalizar diagonal
+                    dy *= 0.707;
+                }
+
+                if (!checkCollisions(player.x + dx, player.y)) player.x += dx;
+                if (!checkCollisions(player.x, player.y + dy)) player.y += dy;
+
+                // Límites mapa
+                player.x = Math.max(0, Math.min(width - player.w, player.x));
+                player.y = Math.max(0, Math.min(height - player.h, player.y));
+
+                // Gestión de Prompts
+                let nearest = getNearestInteractable();
+                const prompt = document.getElementById('interaction-prompt');
+                const tvPrompt = document.getElementById('tv-prompt');
+                const pcPrompt = document.getElementById('pc-prompt');
+                
+                if (nearest && gameState === STATE.PLAYING) {
+                    prompt.innerText = nearest.type === 'npc' ? `E: Hablar con ${nearest.name}` : `E: ${nearest.label || 'Interactuar'}`;
+                    prompt.classList.remove('hidden');
+                    
+                    if (nearest.type === 'tv' && player.seated) tvPrompt.classList.remove('hidden'); else tvPrompt.classList.add('hidden');
+                    if (nearest.type === 'desk') pcPrompt.classList.remove('hidden'); else pcPrompt.classList.add('hidden');
+                } else {
+                    prompt.classList.add('hidden');
+                    tvPrompt.classList.add('hidden');
+                    pcPrompt.classList.add('hidden');
+                }
+
+                // Lógica de Ciudad (Autos y NPCs)
+                if (currentMap === 'city') {
+                    // Mover NPCs
+                    npcs.forEach(npc => {
+                        npc.x += npc.dx;
+                        if (npc.x > 1200 || npc.x < 100) npc.dx *= -1; // Patrullaje simple
+                    });
+
+                    // Generar Autos
+                    if (Math.random() < 0.01) {
+                        let isRight = Math.random() > 0.5;
+                        cars.push({
+                            x: isRight ? -100 : width + 100,
+                            y: road.y + 20 + Math.random() * 120, // Carriles aleatorios
+                            w: 80, h: 40,
+                            speed: isRight ? (6 + Math.random()*4) : -(6 + Math.random()*4),
+                            color: carColors[Math.floor(Math.random() * carColors.length)]
+                        });
+                    }
+
+                    // Mover y colisión autos
+                    for (let i = cars.length - 1; i >= 0; i--) {
+                        let c = cars[i];
+                        c.x += c.speed;
+                        
+                        // Eliminar autos fuera de pantalla
+                        if (c.x < -200 || c.x > width + 200) {
+                            cars.splice(i, 1);
+                            continue;
+                        }
+
+                        // Colisión fatal
+                        if (rectIntersect(player, c) && gameState === STATE.PLAYING) {
+                            die("¡Un auto te atropelló por no mirar al cruzar!");
+                        }
+                    }
+                }
+            }
+
+            updateStats();
+        }
+
+        // === RENDERIZADO ===
+
+        function draw() {
+            // Limpiar fondo
+            ctx.fillStyle = currentMap === 'city' ? '#6b7280' : '#1f2937'; // Fondo base
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.save();
+            // Centrar cámara rudimentaria (opcional, por ahora pantalla estática o ligeramente ajustada)
+            // ctx.translate(width/2 - player.x, height/2 - player.y);
+
+            if (currentMap === 'house') {
+                // Piso casa
+                ctx.fillStyle = colors.floorHouse;
+                ctx.fillRect(50, 50, 700, 500);
+
+                // Objetos
+                maps.house.objects.forEach(obj => {
+                    ctx.fillStyle = obj.color;
+                    ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+                    
+                    // Detalles (ej: pantalla PC)
+                    if (obj.type === 'desk') {
+                        ctx.fillStyle = '#0ea5e9'; // Pantalla encendida
+                        ctx.fillRect(obj.x + 10, obj.y + 10, 40, 20);
+                    }
+                });
+            } 
+            else if (currentMap === 'city') {
+                // Piso pasto
+                ctx.fillStyle = colors.grass;
+                ctx.fillRect(0, 0, width, height);
+
+                // Carretera
+                ctx.fillStyle = colors.road;
+                ctx.fillRect(road.x, road.y, road.w, road.h);
+                // Líneas carretera
+                ctx.fillStyle = '#fcd34d';
+                for(let i=0; i<width; i+=60) {
+                    ctx.fillRect(i, road.y + road.h/2 - 2, 40, 4);
+                }
+
+                // Aceras
+                ctx.fillStyle = colors.sidewalk;
+                ctx.fillRect(0, road.y - 40, width, 40);
+                ctx.fillRect(0, road.y + road.h, width, 40);
+
+                // Objetos ciudad (Edificios)
+                maps.city.objects.forEach(obj => {
+                    ctx.fillStyle = obj.color;
+                    ctx.fillRect(obj.x, obj.y, obj.w, obj.h);
+                    if (obj.type === 'shopDoor') {
+                        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                        ctx.fillText("TIENDA", obj.x + 10, obj.y - 10);
+                    }
+                });
+
+                // Dibujar NPCs
+                npcs.forEach(npc => {
+                    ctx.fillStyle = npc.color;
+                    ctx.beginPath();
+                    ctx.arc(npc.x + npc.w/2, npc.y + npc.h/2, npc.w/2, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.fillStyle = 'black';
+                    ctx.textAlign = 'center';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(npc.name, npc.x + npc.w/2, npc.y - 5);
+                });
+
+                // Dibujar Autos
+                cars.forEach(c => {
+                    ctx.fillStyle = c.color;
+                    ctx.fillRect(c.x, c.y, c.w, c.h);
+                    // Ventanas coche
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.fillRect(c.speed > 0 ? c.x + c.w - 20 : c.x + 5, c.y + 5, 15, c.h - 10);
+                });
+            }
+
+            // Dibujar Jugador
+            if (gameState !== STATE.QUIZ) { // No dibujar jugador en el cuarto oscuro
+                ctx.fillStyle = gameState === STATE.GHOST ? 'rgba(255, 255, 255, 0.5)' : player.color;
+                
+                // Si es fantasma, forma redonda flotante
+                if (gameState === STATE.GHOST) {
+                    ctx.beginPath();
+                    ctx.arc(player.x + player.w/2, player.y + player.h/2 + Math.sin(Date.now()/200)*5, player.w/2, 0, Math.PI*2);
+                    ctx.fill();
+                } else {
+                    ctx.fillRect(player.x, player.y, player.w, player.h);
+                    // Detalles jugador
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(player.x + 4, player.y + 4, 4, 4); // Ojos
+                    ctx.fillRect(player.x + 16, player.y + 4, 4, 4);
+                }
+            }
+
+            ctx.restore();
+
+            // Overlay Día/Noche
+            if (isNight && currentMap !== 'quiz_room') {
+                ctx.fillStyle = 'rgba(0, 0, 50, 0.6)'; // Azul oscuro transparente
+                ctx.fillRect(0, 0, width, height);
+                
+                // Luz alrededor del jugador
+                if (gameState !== STATE.GHOST) {
+                    let grad = ctx.createRadialGradient(player.x + player.w/2, player.y + player.h/2, 20, player.x + player.w/2, player.y + player.h/2, 100);
+                    grad.addColorStop(0, 'rgba(255,255,200,0.4)');
+                    grad.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(player.x - 100, player.y - 100, 200, 200);
+                }
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // === UI INTERFACES ===
+
+        // --- SISTEMA DE INVENTARIO ---
+        function updateInventoryUI() {
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = '';
+            if (player.inventory.length === 0) {
+                list.innerHTML = '<span class="text-gray-500 italic">Inventario vacío</span>';
+                return;
+            }
+
+            // Agrupar items
+            const counts = {};
+            player.inventory.forEach(i => counts[i.name] = (counts[i.name] || 0) + 1);
+
+            for (let [name, count] of Object.entries(counts)) {
+                const itemDef = itemDefinitions[name];
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left bg-gray-800 hover:bg-gray-700 p-2 rounded flex justify-between items-center border border-gray-600 transition';
+                btn.innerHTML = `<span>${name} <span class="text-xs bg-blue-600 rounded px-1 ml-1">x${count}</span></span> <span class="text-xs text-gray-400">Consumir</span>`;
+                btn.onclick = () => consumeItem(name);
+                list.appendChild(btn);
+            }
+        }
+
+        const itemDefinitions = {
+            'Agua': { h: 0, t: 40 },
+            'Chetos': { h: 15, t: -5 },
+            'Doritos': { h: 20, t: -10 },
+            'Pizza': { h: 50, t: -10 },
+            'Comida Sana': { h: 30, t: 10 } // Del súper online
+        };
+
+        function consumeItem(name) {
+            const idx = player.inventory.findIndex(i => i.name === name);
+            if (idx > -1) {
+                player.inventory.splice(idx, 1);
+                const effect = itemDefinitions[name];
+                player.hunger = Math.min(100, player.hunger + effect.h);
+                player.thirst = Math.min(100, player.thirst + effect.t);
+                showNotification(`Consumiste ${name}`);
+                updateInventoryUI();
+            }
+        }
+
+        // --- TIENDA ---
+        function openShop() {
+            gameState = STATE.SHOP;
+            document.getElementById('shop-money').innerText = "$" + player.money;
+            document.getElementById('shop-ui').classList.remove('hidden');
+        }
+        function closeShop() {
+            gameState = STATE.PLAYING;
+            document.getElementById('shop-ui').classList.add('hidden');
+        }
+        function buyItem(name, cost, hunger, thirst) {
+            if (player.money >= cost) {
+                player.money -= cost;
+                player.inventory.push({name, hunger, thirst});
+                document.getElementById('shop-money').innerText = "$" + player.money;
+                updateInventoryUI();
+                showNotification(`Compraste ${name}`);
+            } else {
+                alert("¡No tienes suficiente dinero, ponte a programar!");
+            }
+        }
+
+        // --- DIÁLOGO ---
+        let currentNPC = null;
+        function openDialogue(npc) {
+            gameState = STATE.DIALOGUE;
+            currentNPC = npc;
+            document.getElementById('npc-avatar').innerText = npc.avatar;
+            document.getElementById('npc-name').innerText = npc.name;
+            document.getElementById('npc-text').innerText = npc.text;
+            document.getElementById('dialogue-ui').classList.remove('hidden');
+        }
+        function closeDialogue() {
+            gameState = STATE.PLAYING;
+            document.getElementById('dialogue-ui').classList.add('hidden');
+        }
+
+        // --- TV ---
+        let tvChannel = 1;
+        let tvVol = 50;
+        const channels = [
+            "NO SIGNAL",
+            "📺 Noticias: Loco crea un simulador en un archivo HTML.",
+            "⚽ Deportes: El equipo local pierde 5-0 de nuevo.",
+            "🎬 Película: 'El Ataque de los Bugs Asesinos'",
+            "🎵 Música: Lo-Fi beats to code/relax to.",
+            "🍳 Cocina: Cómo hacer pizza en microondas.",
+            "👻 Misterio: ¿Hay fantasmas en la ciudad? Reportajes a las 11.",
+            "🐶 Animales: Perritos graciosos cayéndose.",
+            "💻 Tech: La nueva IA que reemplazará a los programadores (broma).",
+            "🛍️ Teletienda: ¡Compre esta silla gamer a solo $999!"
+        ];
+        function openTV() {
+            gameState = STATE.TV;
+            document.getElementById('tv-ui').classList.remove('hidden');
+            updateTVScreen();
+        }
+        function closeTV() {
+            gameState = STATE.PLAYING;
+            document.getElementById('tv-ui').classList.add('hidden');
+        }
+        function changeChannel(dir) {
+            tvChannel += dir;
+            if (tvChannel > 10) tvChannel = 1;
+            if (tvChannel < 1) tvChannel = 10;
+            updateTVScreen();
+        }
+        function changeVolume(dir) {
+            tvVol += dir;
+            if (tvVol > 100) tvVol = 100;
+            if (tvVol < 0) tvVol = 0;
+            
+            const volDisplay = document.getElementById('tv-vol-display');
+            document.getElementById('tv-vol-val').innerText = tvVol;
+            volDisplay.classList.remove('hidden');
+            
+            clearTimeout(window.volTimeout);
+            window.volTimeout = setTimeout(() => { volDisplay.classList.add('hidden'); }, 2000);
+        }
+        function updateTVScreen() {
+            document.getElementById('tv-channel-display').innerText = "CH " + tvChannel;
+            const screen = document.getElementById('tv-screen');
+            if (tvChannel === 1) {
+                screen.innerHTML = "NO SIGNAL";
+                screen.className = "absolute top-0 left-0 w-full h-full tv-static flex items-center justify-center text-white text-3xl font-bold text-center p-10";
+            } else {
+                let colors = ['bg-blue-900', 'bg-green-900', 'bg-red-900', 'bg-purple-900', 'bg-yellow-900', 'bg-gray-800'];
+                screen.className = `absolute top-0 left-0 w-full h-full flex items-center justify-center text-white text-2xl font-bold text-center p-10 ${colors[tvChannel%colors.length]}`;
+                screen.innerHTML = channels[tvChannel-1];
+            }
+        }
+
+        // --- PC ---
+        function openPC() {
+            gameState = STATE.PC;
+            document.getElementById('pc-ui').classList.remove('hidden');
+            document.getElementById('desktop').classList.remove('hidden');
+            document.getElementById('app-window').classList.add('hidden');
+        }
+        function closePC() {
+            gameState = STATE.PLAYING;
+            document.getElementById('pc-ui').classList.add('hidden');
+        }
+        function openApp(appName) {
+            const win = document.getElementById('app-window');
+            const content = document.getElementById('app-content');
+            const title = document.getElementById('app-title');
+            win.classList.remove('hidden');
+
+            if (appName === 'dev') {
+                title.innerHTML = '<i class="fas fa-code text-blue-500"></i> DevStudio IDE';
+                content.innerHTML = `
+                    <div class="p-6 bg-gray-900 h-full text-green-400 font-mono flex flex-col items-center justify-center">
+                        <div class="mb-6 text-center">
+                            <h3 class="text-2xl text-white mb-2">Crear Nuevo Juego</h3>
+                            <p class="text-sm text-gray-400">Pica teclas para escribir código mágico.</p>
+                        </div>
+                        <button id="btn-code" onclick="codeGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 px-10 rounded shadow-[0_4px_0_#1e3a8a] active:shadow-none active:translate-y-1 transition-all text-xl">
+                            Escribir Código 👨‍💻
+                        </button>
+                        <div id="code-result" class="mt-8 text-xl h-10"></div>
+                        <div class="w-full bg-gray-800 h-4 mt-6 rounded overflow-hidden">
+                            <div id="code-progress" class="bg-green-500 h-full w-0 transition-all"></div>
+                        </div>
+                    </div>
+                `;
+            } else if (appName === 'messages') {
+                title.innerHTML = '<i class="fas fa-comments text-green-500"></i> Mensajes';
+                const contacts = ['Mamá', 'Tío', 'Hijo', 'Novia', 'Jefa', 'Clientes', 'Pastelera'];
+                let html = '<div class="flex h-full"><div class="w-1/3 border-r bg-white overflow-y-auto">';
+                contacts.forEach(c => {
+                    html += `<div class="p-3 border-b hover:bg-gray-100 cursor-pointer font-bold flex items-center gap-2" onclick="showChat('${c}')"><div class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-xs text-white uppercase">${c[0]}</div> ${c}</div>`;
+                });
+                html += '</div><div class="w-2/3 bg-gray-50 p-4 flex flex-col" id="chat-area"><div class="m-auto text-gray-400">Selecciona un chat</div></div></div>';
+                content.innerHTML = html;
+            } else if (appName === 'store') {
+                title.innerHTML = '<i class="fas fa-shopping-cart text-yellow-500"></i> SúperOnline';
+                content.innerHTML = `
+                    <div class="p-6 h-full bg-white text-black text-center">
+                        <h2 class="text-2xl font-bold mb-4 text-blue-600">Súper Express a Domicilio</h2>
+                        <p class="mb-6">Saldo disponible: <span class="font-bold text-green-600">$<span id="pc-money">${player.money}</span></span></p>
+                        <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                            <div class="border p-4 rounded text-center shadow hover:shadow-lg transition">
+                                <h4 class="font-bold">Pack Comida Sana</h4>
+                                <p class="text-sm text-gray-500 mb-2">+30 Hambre, +10 Sed</p>
+                                <p class="text-green-600 font-bold mb-2">$30</p>
+                                <button onclick="buyOnline('Comida Sana', 30, 30, 10)" class="bg-blue-500 text-white px-4 py-1 rounded w-full hover:bg-blue-600">Comprar</button>
+                            </div>
+                        </div>
+                        <p id="online-msg" class="mt-6 text-green-600 font-bold"></p>
+                    </div>
+                `;
+            } else if (appName === 'news') {
+                title.innerHTML = '<i class="fas fa-newspaper text-red-500"></i> Noticias Tech';
+                content.innerHTML = `
+                    <div class="p-6 h-full bg-white overflow-y-auto">
+                        <h1 class="text-3xl font-serif font-bold mb-6 border-b-2 pb-2">El Diario del Dev</h1>
+                        
+                        <article class="mb-6 border-b pb-4">
+                            <h3 class="text-xl font-bold text-blue-700">Se aprueba ley de Home Office eterno</h3>
+                            <p class="text-gray-700 mt-2">Los programadores ya no tendrán que ver la luz del sol nunca más. "Es un gran día para la industria", comentó un desarrollador pálido.</p>
+                        </article>
+                        
+                        <article class="mb-6 border-b pb-4">
+                            <h3 class="text-xl font-bold text-blue-700">Gatos dominan el teclado</h3>
+                            <p class="text-gray-700 mt-2">Estudio revela que el 40% del código en producción hoy en día fue generado por gatos caminando sobre teclados mecánicos. Y funciona mejor.</p>
+                        </article>
+                    </div>
+                `;
+            }
+        }
+
+        let codingProgress = 0;
+        function codeGame() {
+            if (codingProgress >= 100) return;
+            const btn = document.getElementById('btn-code');
+            const res = document.getElementById('code-result');
+            const bar = document.getElementById('code-progress');
+            
+            // Cuesta un poco de hambre y sed programar
+            player.hunger = Math.max(0, player.hunger - 0.5);
+            player.thirst = Math.max(0, player.thirst - 0.5);
+
+            codingProgress += 10;
+            bar.style.width = codingProgress + '%';
+
+            if (codingProgress >= 100) {
+                btn.innerText = "Publicando...";
+                btn.disabled = true;
+                
+                setTimeout(() => {
+                    // Lógica de recompensa (pagan rara vez)
+                    let chance = Math.random();
+                    if (chance > 0.6) {
+                        let earned = Math.floor(Math.random() * 100) + 50;
+                        player.money += earned;
+                        res.innerHTML = `<span class="text-green-400">¡Éxito! Tu juego indie se vendió. Ganaste $${earned}</span>`;
+                    } else {
+                        res.innerHTML = `<span class="text-red-400">Fracaso total. Nadie compró tu juego.</span>`;
+                    }
+                    
+                    document.getElementById('money-val').innerText = player.money;
+                    
+                    setTimeout(() => {
+                        codingProgress = 0;
+                        bar.style.width = '0%';
+                        btn.innerText = "Escribir Código 👨‍💻";
+                        btn.disabled = false;
+                        res.innerHTML = '';
+                    }, 3000);
+                }, 1500);
+            }
+        }
+
+        const chats = {
+            'Mamá': ['¡Hijo come algo!', 'Te dejé ropa limpia.', '¿Sigues en esa computadora todo el día?'],
+            'Tío': ['Sobrino, revísame la compu que tiene virus.', 'Préstame 500 pesos.', '¿Cuándo me haces mi página web gratis?'],
+            'Hijo': ['Papá, ¿puedes comprarme Robux?', 'Mira mi dibujo.', 'Tengo hambre.'],
+            'Novia': ['¿A qué hora terminas de trabajar?', 'No me ignores.', 'Te amo ❤️'],
+            'Jefa': ['Necesito ese reporte para ayer.', 'Cambio de planes, rehaz todo el frontend.', '¿Estás trabajando o jugando?'],
+            'Clientes': ['El botón no funciona en IE6.', 'Cámbiale el color a un rojo más azulado.', 'Te pago el mes que viene sin falta.'],
+            'Pastelera': ['Su pastel con forma de teclado está listo.', 'Serían 200 pesos.', 'Gracias por su compra.']
+        };
+
+        function showChat(name) {
+            const area = document.getElementById('chat-area');
+            let msgs = chats[name];
+            let html = `<div class="font-bold border-b pb-2 mb-4 text-blue-600"><i class="fas fa-user-circle"></i> Chat con ${name}</div><div class="flex-1 flex flex-col gap-3">`;
+            
+            msgs.forEach((msg, i) => {
+                let isMe = i % 2 !== 0; // Alternar lado perezosamente
+                html += `
+                    <div class="p-2 rounded-lg max-w-[80%] ${isMe ? 'bg-blue-100 self-end rounded-tr-none' : 'bg-white border self-start rounded-tl-none'}">
+                        ${msg}
+                    </div>
+                `;
+            });
+            html += `</div><div class="mt-4 flex gap-2"><input type="text" class="border rounded px-2 py-1 w-full" placeholder="Escribir..."><button class="bg-blue-500 text-white px-3 rounded hover:bg-blue-600"><i class="fas fa-paper-plane"></i></button></div>`;
+            area.innerHTML = html;
+        }
+
+        function buyOnline(name, cost, h, t) {
+            if (player.money >= cost) {
+                player.money -= cost;
+                player.inventory.push({name, hunger: h, thirst: t});
+                document.getElementById('pc-money').innerText = player.money;
+                document.getElementById('money-val').innerText = player.money;
+                updateInventoryUI();
+                document.getElementById('online-msg').innerText = "¡Compra entregada en tu inventario mágicamente!";
+                setTimeout(()=> document.getElementById('online-msg').innerText = "", 2000);
+            } else {
+                alert("Fondos insuficientes en la tarjeta.");
+            }
+        }
+
+        function closeApp() {
+            document.getElementById('app-window').classList.add('hidden');
+        }
+
+        // --- SISTEMA DE QUIZ DE RESURRECCIÓN ---
+        let currentQuestion = 0;
+        const quizQuestions = [
+            {
+                q: "¿Por qué debería devolverte a la vida?",
+                opts: ["Porque aún no termino mi juego indie.", "Para seguir perdiendo el tiempo.", "Porque prometo ser mejor persona y cuidarme."],
+                correct: 2
+            },
+            {
+                q: "El dinero no lo es todo, pero... ¿cómo lo conseguirás ahora?",
+                opts: ["Robando a la tienda de Don Juan.", "Trabajando duro en mi PC.", "Pidiéndole prestado a mi tío."],
+                correct: 1
+            },
+            {
+                q: "¿Qué harás cuando tu hambre llegue a 10%?",
+                opts: ["Ignorarla, compila primero.", "Iré a comprar comida o comer del inventario.", "Llorar en un rincón."],
+                correct: 1
+            }
+        ];
+
+        function startQuiz() {
+            gameState = STATE.QUIZ;
+            currentMap = 'quiz_room'; // Mapa vacío
+            currentQuestion = 0;
+            document.getElementById('quiz-ui').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const qObj = quizQuestions[currentQuestion];
+            document.getElementById('quiz-question').innerText = `"${qObj.q}"`;
+            const optsContainer = document.getElementById('quiz-options');
+            optsContainer.innerHTML = '';
+            
+            qObj.opts.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-gray-800 hover:bg-gray-700 text-white font-serif border border-gray-600 p-4 rounded w-full text-left transition-colors";
+                btn.innerText = (index + 1) + ". " + opt;
+                btn.onclick = () => answerQuiz(index, qObj.correct);
+                optsContainer.appendChild(btn);
+            });
+        }
+
+        function answerQuiz(selected, correct) {
+            if (selected === correct) {
+                currentQuestion++;
+                if (currentQuestion >= quizQuestions.length) {
+                    // Ganó la vida
+                    document.getElementById('quiz-question').innerText = `"Muy bien. Te daré otra oportunidad. No la desperdicies..."`;
+                    document.getElementById('quiz-options').innerHTML = '';
+                    setTimeout(() => {
+                        resurrect();
+                    }, 3000);
+                } else {
+                    renderQuestion();
+                }
+            } else {
+                // Falló
+                document.getElementById('quiz-question').innerText = `"Respuesta incorrecta. Tu alma se quedará aquí para siempre."`;
+                document.getElementById('quiz-options').innerHTML = '';
+                setTimeout(() => {
+                    document.getElementById('quiz-ui').classList.add('hidden');
+                    gameState = STATE.GHOST;
+                    player.isGhost = true;
+                    player.color = 'rgba(255, 255, 255, 0.4)';
+                    currentMap = 'house'; // Vuelve como fantasma
+                    player.x = 200; player.y = 200;
+                    showNotification("Fallaste. Eres un fantasma para siempre.");
+                }, 3000);
+            }
+        }
+
+        function resurrect() {
+            document.getElementById('quiz-ui').classList.add('hidden');
+            gameState = STATE.PLAYING;
+            player.isGhost = false;
+            player.color = '#3b82f6';
+            player.hunger = 100;
+            player.thirst = 100;
+            player.money = Math.max(10, player.money); // Al menos 10 pesitos para revivir
+            currentMap = 'house';
+            player.x = maps.house.spawn.x;
+            player.y = maps.house.spawn.y;
+            player.seated = false;
+            updateInventoryUI();
+            showNotification("¡Has revivido! Aprovecha esta nueva oportunidad.");
+        }
+
+        // Iniciar
+        gameLoop();
+        updateInventoryUI(); // Inicializar UI inventario
+
+    </script>
+</body>
+</html>
