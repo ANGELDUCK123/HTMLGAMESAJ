@@ -347,22 +347,22 @@
         { type: 'Desk', x: 100, y: 200, w: 80, h: 40, color: '#d35400', emoji: '🪑' },
         { type: 'PC', x: 115, y: 190, w: 30, h: 20, color: '#ecf0f1', emoji: '💻' },
         { type: 'Door', x: 780, y: 280, w: 20, h: 80, color: '#8b4513', emoji: '🚪' },
-        { type: 'StairsUp1', x: 50, y: 50, w: 40, h: 40, color: '#555', emoji: '🪜 (E subir)' },
-        { type: 'StairsDown1', x: 150, y: 50, w: 40, h: 40, color: '#555', emoji: '🪜 (E bajar)' },
+        { type: 'StairsUp1', x: 50, y: 50, w: 40, h: 40, color: '#555', emoji: '🪜subir' },
+        { type: 'StairsDown1', x: 150, y: 50, w: 40, h: 40, color: '#555', emoji: '🪜bajar' },
         
         // --- PISO 2 ---
-        { type: 'StairsDown2', x: 50, y: -950, w: 40, h: 40, color: '#555', emoji: '🪜 (E bajar)' },
-        { type: 'StairsUp2', x: 150, y: -950, w: 40, h: 40, color: '#555', emoji: '🪜 (E subir)' },
+        { type: 'StairsDown2', x: 50, y: -950, w: 40, h: 40, color: '#555', emoji: '🪜bajar' },
+        { type: 'StairsUp2', x: 150, y: -950, w: 40, h: 40, color: '#555', emoji: '🪜subir' },
         { type: 'Table2F', x: 300, y: -950, w: 100, h: 40, color: '#c0392b', emoji: '🪑' },
         { type: 'Bed', x: 500, y: -600, w: 80, h: 100, color: '#2980b9', emoji: '🛏️' },
 
         // --- PISO 3 (FIESTA) ---
-        { type: 'StairsDown3', x: 50, y: -1950, w: 40, h: 40, color: '#555', emoji: '🪜 (E bajar)' },
+        { type: 'StairsDown3', x: 50, y: -1950, w: 40, h: 40, color: '#555', emoji: '🪜bajar' },
         { type: 'DJ', x: 400, y: -1800, w: 80, h: 40, color: '#111', emoji: '🎛️ DJ' },
 
         // --- SÓTANO ---
-        { type: 'StairsUpB', x: 150, y: 1050, w: 40, h: 40, color: '#555', emoji: '🪜 (E subir)' },
-        { type: 'BasementTV', x: 400, y: 1100, w: 100, h: 30, color: '#111', emoji: '📺 (T ver)' },
+        { type: 'StairsUpB', x: 150, y: 1050, w: 40, h: 40, color: '#555', emoji: '🪜subir' },
+        { type: 'BasementTV', x: 400, y: 1100, w: 100, h: 30, color: '#111', emoji: '📺' },
         { type: 'BasementCouch', x: 400, y: 1250, w: 100, h: 50, color: '#c0392b', emoji: '🛋️' },
 
         // --- AFUERA ---
@@ -702,9 +702,25 @@
         updateTV();
     }
     function updateTV() {
-        document.getElementById('tv-ch-display').innerText = `CANAL ${gameState.tvChannel}`;
-        document.getElementById('tv-screen').src = `https://picsum.photos/seed/${gameState.tvChannel}/700/350`;
-    }
+    // 1. Crea una lista con tus 10 enlaces (reemplaza las URL de ejemplo)
+    const misCanales = [
+        "https://i.kym-cdn.com/photos/images/facebook/002/055/000/00a.jpg",
+        "https://i.ytimg.com/vi/hYKygZTrEYo/maxresdefault.jpg",
+        "https://i.ytimg.com/vi/qP2A6uqskuE/maxresdefault.jpg",
+        "https://www.lawod.com/wp-content/uploads/2025/05/Are-There-Any-Active-Be-a-Gubby-Codes-Right-Now-1536x864.jpg",
+        "https://thumbs.dreamstime.com/b/no-signal-tv-screen-test-glitch-color-pattern-grain-noise-vector-background-broken-television-broadcast-error-bars-270517652.jpg",
+        "https://www.la-pantalla.com.ar/wp-content/uploads/como-hacer-que-una-pantalla-tenga-senal.webp",
+        "https://thumbs.dreamstime.com/b/no-signal-tv-screen-test-glitch-color-pattern-grain-noise-vector-background-broken-television-broadcast-error-bars-270517652.jpg",
+        "https://thumbs.dreamstime.com/b/no-signal-tv-screen-test-glitch-color-pattern-grain-noise-vector-background-broken-television-broadcast-error-bars-270517652.jpg",
+        "https://thumbs.dreamstime.com/b/no-signal-tv-screen-test-glitch-color-pattern-grain-noise-vector-background-broken-television-broadcast-error-bars-270517652.jpg",
+        "https://thumbs.dreamstime.com/b/no-signal-tv-screen-test-glitch-color-pattern-grain-noise-vector-background-broken-television-broadcast-error-bars-270517652.jpg"
+    ];
+
+    document.getElementById('tv-ch-display').innerText = `CANAL ${gameState.tvChannel}`;
+    
+    // 2. Asigna la imagen usando el índice del canal (el -1 es porque los arrays empiezan en 0)
+    document.getElementById('tv-screen').src = misCanales[gameState.tvChannel - 1];
+}
     function closeTV() { document.getElementById('tv-interface').style.display = 'none'; }
 
     // --- UTILIDADES ---
