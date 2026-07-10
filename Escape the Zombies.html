@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Fin del Mundo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background-color: #111; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        #gameCanvas { display: block; }
+        
+        /* UI Layer */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        /* Health Bar */
+        #health-container { position: absolute; top: 20px; left: 20px; display: flex; gap: 5px; }
+        .heart { font-size: 24px; text-shadow: 2px 2px 0 #000; }
+        
+        /* Progress Bar (Olas/Barrera) */
+        #progress-wrapper { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 400px; text-align: center; }
+        #progress-wrapper h3 { margin-bottom: 5px; font-size: 16px; text-shadow: 1px 1px 2px black; color: #ddd; }
+        #progress-bg { width: 100%; height: 20px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 10px; overflow: hidden; }
+        #progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #8b0000, #ff4500); transition: width 0.2s; }
+        
+        /* Inventory */
+        #inventory-container { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; }
+        .slot { width: 60px; height: 60px; background: rgba(50,50,50,0.8); border: 2px solid #333; border-radius: 5px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .slot.active { border-color: #fff; background: rgba(80,80,80,0.9); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        .slot:hover { background: rgba(70,70,70,0.8); }
+        .slot-icon { font-size: 28px; }
+        .slot-ammo { position: absolute; bottom: 2px; right: 5px; font-size: 12px; font-weight: bold; }
+        
+        /* Interaction Hint */
+        #interaction-hint { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 20px; font-size: 18px; display: none; }
+        
+        /* Phone UI */
+        #phone-ui { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 600px; background: #000; border: 12px solid #333; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: flex; flex-direction: column; pointer-events: auto; z-index: 100; transition: opacity 0.3s, transform 0.3s; }
+        #phone-ui.hidden { opacity: 0; pointer-events: none; transform: translate(-50%, -40%); }
+        #phone-screen { flex: 1; background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop') center/cover; border-radius: 18px; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+        #phone-topbar { background: rgba(0,0,0,0.5); padding: 5px 15px; display: flex; justify-content: space-between; font-size: 12px; }
+        #phone-apps { padding: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .app { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+        .app-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .app-name { font-size: 10px; text-shadow: 1px 1px 2px black; text-align: center; }
+        #phone-home-btn { height: 40px; border-top: 1px solid #444; display: flex; justify-content: center; align-items: center; }
+        #phone-home-btn div { width: 40px; height: 4px; background: #fff; border-radius: 2px; }
+        
+        /* Overlays (Death, Win) */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; pointer-events: auto; transition: opacity 0.5s; }
+        .overlay.hidden { opacity: 0; pointer-events: none; }
+        #death-screen { background: rgba(150, 0, 0, 0.8); }
+        #win-screen { background: rgba(0, 100, 0, 0.8); }
+        .overlay h1 { font-size: 64px; margin-bottom: 20px; text-shadow: 3px 3px 0 #000; text-align: center; }
+        .overlay p { font-size: 24px; margin-bottom: 40px; text-shadow: 1px 1px 0 #000; text-align: center; max-width: 600px; }
+        .btn { padding: 15px 40px; font-size: 24px; background: #333; color: white; border: 2px solid #fff; border-radius: 10px; cursor: pointer; transition: 0.2s; font-weight: bold; }
+        .btn:hover { background: #555; transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui-layer">
+        <div id="health-container"></div>
+        
+        <div id="progress-wrapper">
+            <h3>Nivel de Infección (Sobrevive)</h3>
+            <div id="progress-bg"><div id="progress-fill"></div></div>
+        </div>
+        
+        <div id="interaction-hint">Presiona [E] para interactuar</div>
+        
+        <div id="inventory-container" id="inventory">
+            <!-- Slots generados por JS -->
+        </div>
+    </div>
+    
+    <!-- Celular UI -->
+    <div id="phone-ui" class="hidden">
+        <div id="phone-screen">
+            <div id="phone-topbar">
+                <span>12:00 PM</span>
+                <span>⚠️ Sin Señal | 🔋 14%</span>
+            </div>
+            <div id="phone-apps">
+                <div class="app"><div class="app-icon" style="background:#25D366;">💬</div><span class="app-name">Mensajes</span></div>
+                <div class="app"><div class="app-icon" style="background:#1DA1F2;">🐦</div><span class="app-name">Red Social</span></div>
+                <div class="app"><div class="app-icon" style="background:#F56040;">📸</div><span class="app-name">Cámara</span></div>
+                <div class="app"><div class="app-icon" style="background:#333;">⚙️</div><span class="app-name">Ajustes</span></div>
+                <div class="app"><div class="app-icon" style="background:#FF0000;">▶️</div><span class="app-name">Videos</span></div>
+                <div class="app"><div class="app-icon" style="background:#007BFF;">🌐</div><span class="app-name">Navegador</span></div>
+            </div>
+            <div style="position:absolute; bottom: 20px; width: 100%; text-align: center; color: rgba(255,255,255,0.7); font-size: 12px; font-weight: bold;">
+                Red no disponible. Solo emergencias.
+            </div>
+        </div>
+        <div id="phone-home-btn"><div></div></div>
+    </div>
+
+    <!-- Pantalla de Muerte -->
+    <div id="death-screen" class="overlay hidden">
+        <h1>HAS MUERTO</h1>
+        <p>Los zombis te han atrapado. Tus cosas han quedado donde moriste y desaparecerán en 2 minutos.</p>
+        <button class="btn" onclick="respawn()">Reaparecer</button>
+    </div>
+
+    <!-- Pantalla de Victoria -->
+    <div id="win-screen" class="overlay hidden">
+        <h1>¡GANASTE!</h1>
+        <p>Has sobrevivido a la ola de infección. La ciudad está despejada (por ahora).</p>
+        <button class="btn" onclick="location.reload()">Jugar de nuevo</button>
+    </div>
+</div>
+
+<script>
+    // --- Configuración y Constantes ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const WORLD_SIZE = 4000;
+    const INVENTORY_SIZE = 5;
+    const MAX_HEALTH = 10;
+    
+    // Base de datos de objetos
+    const ITEM_DB = {
+        broom: { id: 'broom', name: 'Palo de escoba', icon: '🧹', type: 'melee', dmg: 2, range: 45, cooldown: 500 },
+        strong_stick: { id: 'strong_stick', name: 'Palo fuerte', icon: '🏏', type: 'melee', dmg: 4, range: 50, cooldown: 600 },
+        katana: { id: 'katana', name: 'Katana', icon: '🗡️', type: 'melee', dmg: 14, range: 65, cooldown: 400 }, // Katana mata rapido
+        pistol: { id: 'pistol', name: 'Pistola', icon: '🔫', type: 'ranged', ammo: 8, maxAmmo: 8, cooldown: 500 },
+        nokia: { id: 'nokia', name: 'Nokia Viejo', icon: '📱', type: 'junk', desc: 'Indestructible pero inútil' },
+        smartphone: { id: 'smartphone', name: 'Teléfono', icon: '📲', type: 'phone', desc: 'Sin señal' }
+    };
+
+    // --- Estado del Juego ---
+    let gameState = 'playing'; // playing, dead, win
+    let gameTime = 0; // Tiempo en frames
+    let progress = 0; // 0 a 100
+    const WIN_PROGRESS = 100;
+    const PROGRESS_SPEED = 0.005; // Velocidad de la barra (0.005% por frame a 60fps = ~5.5 minutos)
+
+    // Controles
+    const keys = { w: false, a: false, s: false, d: false, e: false, p: false, c: false };
+    let lastP = false;
+    let lastE = false;
+    let lastC = false;
+    let mouseX = 0, mouseY = 0;
+
+    window.addEventListener('keydown', e => {
+        if(e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true;
+    });
+    window.addEventListener('keyup', e => {
+        if(e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false;
+    });
+    window.addEventListener('mousemove', e => {
+        mouseX = e.clientX; mouseY = e.clientY;
+    });
+    window.addEventListener('resize', () => {
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    });
+
+    // --- Entidades ---
+    const player = {
+        x: WORLD_SIZE / 2, y: WORLD_SIZE / 2,
+        radius: 15,
+        speed: 4,
+        hp: MAX_HEALTH,
+        facingX: 0, facingY: 1,
+        inventory: [{...ITEM_DB.smartphone}, {...ITEM_DB.broom}], // Empieza con telefono y escoba
+        equippedIndex: 1,
+        lastAttack: 0,
+        color: '#3498db'
+    };
+
+    const camera = { x: 0, y: 0 };
+    const buildings = [];
+    const zombies = [];
+    const bullets = [];
+    const chests = [];
+    const droppedItems = [];
+    const deathStashes = [];
+    const bloodStains = [];
+
+    // --- Clases ---
+    class Building {
+        constructor(x, y, w, h) {
+            this.x = x; this.y = y; this.w = w; this.h = h;
+            const wt = 20; // Grosor pared
+            const dw = 80; // Ancho puerta
+            // 4 Paredes con hueco para puerta abajo
+            this.walls = [
+                {x: x, y: y, w: w, h: wt}, // Arriba
+                {x: x, y: y, w: wt, h: h}, // Izquierda
+                {x: x+w-wt, y: y, w: wt, h: h}, // Derecha
+                {x: x, y: y+h-wt, w: (w-dw)/2, h: wt}, // Abajo Izq
+                {x: x+(w+dw)/2, y: y+h-wt, w: (w-dw)/2, h: wt} // Abajo Der
+            ];
+            this.doorRect = {x: x+(w-dw)/2, y: y+h-wt, w: dw, h: wt};
+            this.interior = {x: x+wt, y: y+wt, w: w-wt*2, h: h-wt*2};
+        }
+        
+        contains(px, py) {
+            return px > this.interior.x && px < this.interior.x + this.interior.w &&
+                   py > this.interior.y && py < this.interior.y + this.interior.h;
+        }
+
+        draw(ctx, isPlayerInside) {
+            // Suelo interior
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(this.x, this.y, this.w, this.h);
+            
+            // Si el jugador no está dentro, dibujar techo
+            if (!isPlayerInside) {
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                // Borde de techo
+                ctx.strokeStyle = '#1a252f';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
+            } else {
+                // Dibujar paredes si está dentro
+                ctx.fillStyle = '#555';
+                this.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+            }
+        }
+    }
+
+    class Zombie {
+        constructor(x, y, type) {
+            this.x = x; this.y = y;
+            this.radius = 16;
+            this.type = type; // normal, fast, strong
+            this.state = 'wandering'; // wandering, chasing
+            this.targetX = x; this.targetY = y;
+            this.wanderTimer = 0;
+            this.lastAttack = 0;
+            
+            // Configuración según tipo basado en peticion
+            if (type === 'normal') {
+                this.hp = 5; this.speed = 1.2; this.dmg = 2; this.color = '#2ecc71'; this.bulletResist = 1; this.viewDist = 300;
+            } else if (type === 'fast') {
+                this.hp = 11; this.speed = 3.5; this.dmg = 2; this.color = '#f1c40f'; this.bulletResist = 2; this.viewDist = 400; this.radius = 14;
+            } else if (type === 'strong') {
+                this.hp = 14; this.speed = 0.8; this.dmg = 4; this.color = '#8b0000'; this.bulletResist = 3; this.viewDist = 250; this.radius = 22;
+            }
+            this.maxHp = this.hp;
+        }
+
+        takeDamage(amount, isBullet = false) {
+            if (isBullet) {
+                this.bulletResist--;
+                this.hp -= (this.maxHp / (this.type==='normal'?1:this.type==='fast'?2:3)); // Visual damage
+                if (this.bulletResist <= 0) this.hp = 0;
+            } else {
+                this.hp -= amount;
+            }
+            // Efecto de sangre
+            for(let i=0; i<3; i++) {
+                bloodStains.push({x: this.x + (Math.random()-0.5)*20, y: this.y + (Math.random()-0.5)*20, life: 300});
+            }
+        }
+    }
+
+    // --- Generación del Mapa ---
+    function initMap() {
+        buildings.length = 0;
+        zombies.length = 0;
+        chests.length = 0;
+        droppedItems.length = 0;
+
+        // Generar Edificios (sin sobreponerse)
+        for (let i = 0; i < 40; i++) {
+            let w = 200 + Math.random() * 200;
+            let h = 200 + Math.random() * 200;
+            let x = Math.random() * (WORLD_SIZE - w - 100) + 50;
+            let y = Math.random() * (WORLD_SIZE - h - 100) + 50;
+            
+            // Check overlap
+            let overlap = false;
+            for (let b of buildings) {
+                if (x < b.x+b.w+50 && x+w > b.x-50 && y < b.y+b.h+50 && y+h > b.y-50) {
+                    overlap = true; break;
+                }
+            }
+            if (!overlap) {
+                let b = new Building(x, y, w, h);
+                buildings.push(b);
+                
+                // Dentro del edificio: Cofres y Zombis Fuertes
+                if (Math.random() > 0.3) {
+                    chests.push({
+                        x: b.interior.x + 20 + Math.random() * (b.interior.w - 40),
+                        y: b.interior.y + 20 + Math.random() * (b.interior.h - 40),
+                        opened: false
+                    });
+                }
+                if (Math.random() > 0.2) {
+                    zombies.push(new Zombie(
+                        b.interior.x + b.interior.w/2,
+                        b.interior.y + b.interior.h/2,
+                        'strong'
+                    ));
+                }
+            }
+        }
+    }
+
+    // --- Utilidades Matemáticas y Colisiones ---
+    function circleRectCollide(cx, cy, r, rx, ry, rw, rh) {
+        let testX = cx; let testY = cy;
+        if (cx < rx) testX = rx; else if (cx > rx + rw) testX = rx + rw;
+        if (cy < ry) testY = ry; else if (cy > ry + rh) testY = ry + rh;
+        let distX = cx - testX; let distY = cy - testY;
+        return (distX*distX + distY*distY) <= r*r;
+    }
+
+    function lineIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+        let det = (x2 - x1) * (y4 - y3) - (x4 - x3) * (y2 - y1);
+        if (det === 0) return false;
+        let lambda = ((y4 - y3) * (x4 - x1) + (x3 - x4) * (y4 - y1)) / det;
+        let gamma = ((y1 - y2) * (x4 - x1) + (x2 - x1) * (y4 - y1)) / det;
+        return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+    }
+
+    function lineRectIntersect(x1, y1, x2, y2, rx, ry, rw, rh) {
+        return lineIntersect(x1,y1, x2,y2, rx,ry, rx+rw,ry) || // Top
+               lineIntersect(x1,y1, x2,y2, rx,ry+rh, rx+rw,ry+rh) || // Bottom
+               lineIntersect(x1,y1, x2,y2, rx,ry, rx,ry+rh) || // Left
+               lineIntersect(x1,y1, x2,y2, rx+rw,ry, rx+rw,ry+rh); // Right
+    }
+
+    // Comprobar Línea de Visión (Sigilo/Hiding)
+    function hasLineOfSight(x1, y1, x2, y2) {
+        for (let b of buildings) {
+            for (let w of b.walls) {
+                if (lineRectIntersect(x1, y1, x2, y2, w.x, w.y, w.w, w.h)) {
+                    return false; // Pared bloquea visión
+                }
+            }
+        }
+        return true;
+    }
+
+    function getDistance(x1, y1, x2, y2) {
+        return Math.hypot(x2 - x1, y2 - y1);
+    }
+
+    // --- Lógica Principal ---
+    function update() {
+        if (gameState !== 'playing') return;
+        gameTime++;
+
+        // Progreso y Oleadas
+        progress += PROGRESS_SPEED;
+        if (progress >= WIN_PROGRESS) {
+            gameState = 'win';
+            document.getElementById('win-screen').classList.remove('hidden');
+            return;
+        }
+
+        // Spawn Zombis según barra
+        let spawnRate = 120 - (progress * 0.8); // Se reduce el tiempo entre spawns
+        if (gameTime % Math.max(20, Math.floor(spawnRate)) === 0) {
+            if (zombies.length < 150) { // Limite
+                // Spawn fuera de camara
+                let angle = Math.random() * Math.PI * 2;
+                let dist = Math.max(window.innerWidth, window.innerHeight) / 2 + 100;
+                let zx = player.x + Math.cos(angle) * dist;
+                let zy = player.y + Math.sin(angle) * dist;
+                // Mantener dentro del mundo
+                zx = Math.max(50, Math.min(WORLD_SIZE-50, zx));
+                zy = Math.max(50, Math.min(WORLD_SIZE-50, zy));
+                
+                let type = Math.random() > 0.85 ? 'fast' : 'normal';
+                zombies.push(new Zombie(zx, zy, type));
+            }
+        }
+
+        // Movimiento Jugador
+        let dx = 0, dy = 0;
+        if (keys.w) dy -= 1;
+        if (keys.s) dy += 1;
+        if (keys.a) dx -= 1;
+        if (keys.d) dx += 1;
+
+        if (dx !== 0 || dy !== 0) {
+            let len = Math.hypot(dx, dy);
+            dx /= len; dy /= len;
+            player.facingX = dx; player.facingY = dy;
+            
+            // Intento de movimiento X
+            player.x += dx * player.speed;
+            if(player.x < player.radius) player.x = player.radius;
+            if(player.x > WORLD_SIZE - player.radius) player.x = WORLD_SIZE - player.radius;
+            // Colision X
+            buildings.forEach(b => b.walls.forEach(w => {
+                if(circleRectCollide(player.x, player.y, player.radius, w.x, w.y, w.w, w.h)) {
+                    player.x -= dx * player.speed; // Revertir
+                }
+            }));
+
+            // Intento de movimiento Y
+            player.y += dy * player.speed;
+            if(player.y < player.radius) player.y = player.radius;
+            if(player.y > WORLD_SIZE - player.radius) player.y = WORLD_SIZE - player.radius;
+            // Colision Y
+            buildings.forEach(b => b.walls.forEach(w => {
+                if(circleRectCollide(player.x, player.y, player.radius, w.x, w.y, w.w, w.h)) {
+                    player.y -= dy * player.speed; // Revertir
+                }
+            }));
+        }
+
+        // Actualizar Camara
+        camera.x = player.x - canvas.width / 2;
+        camera.y = player.y - canvas.height / 2;
+
+        // Ataque (P)
+        if (keys.p && !lastP) {
+            let eq = player.inventory[player.equippedIndex];
+            if (eq && Date.now() - player.lastAttack > (eq.cooldown || 500)) {
+                player.lastAttack = Date.now();
+                if (eq.type === 'melee') {
+                    // Hitbox frontal
+                    let hitRange = eq.range;
+                    let hx = player.x + player.facingX * hitRange/2;
+                    let hy = player.y + player.facingY * hitRange/2;
+                    
+                    zombies.forEach(z => {
+                        if (circleRectCollide(z.x, z.y, z.radius, hx - hitRange/2, hy - hitRange/2, hitRange, hitRange)) {
+                            z.takeDamage(eq.dmg);
+                            // Pequeño empuje
+                            z.x += player.facingX * 10;
+                            z.y += player.facingY * 10;
+                        }
+                    });
+                } else if (eq.type === 'ranged' && eq.ammo > 0) {
+                    eq.ammo--;
+                    bullets.push({
+                        x: player.x, y: player.y,
+                        vx: player.facingX * 15, vy: player.facingY * 15,
+                        life: 60
+                    });
+                    updateInventoryUI();
+                }
+            }
+        }
+        lastP = keys.p;
+
+        // Celular (C)
+        if (keys.c && !lastC) {
+            document.getElementById('phone-ui').classList.toggle('hidden');
+        }
+        lastC = keys.c;
+
+        // Interacción (E)
+        let canInteract = false;
+        let interactTarget = null;
+        let interactType = '';
+
+        // Buscar cofre cercano
+        for (let c of chests) {
+            if (!c.opened && getDistance(player.x, player.y, c.x, c.y) < 60) {
+                canInteract = true; interactTarget = c; interactType = 'chest'; break;
+            }
+        }
+        // Buscar items tirados
+        if (!canInteract) {
+            for (let i = 0; i < droppedItems.length; i++) {
+                if (getDistance(player.x, player.y, droppedItems[i].x, droppedItems[i].y) < 60) {
+                    canInteract = true; interactTarget = droppedItems[i]; interactType = 'item'; interactTarget.index = i; break;
+                }
+            }
+        }
+        // Buscar tumba
+        if (!canInteract) {
+            for (let i = 0; i < deathStashes.length; i++) {
+                if (getDistance(player.x, player.y, deathStashes[i].x, deathStashes[i].y) < 60) {
+                    canInteract = true; interactTarget = deathStashes[i]; interactType = 'stash'; interactTarget.index = i; break;
+                }
+            }
+        }
+
+        document.getElementById('interaction-hint').style.display = canInteract ? 'block' : 'none';
+
+        if (keys.e && !lastE && canInteract) {
+            if (interactType === 'chest') {
+                interactTarget.opened = true;
+                // Loot aleatorio
+                let lootTable = [ITEM_DB.strong_stick, ITEM_DB.katana, ITEM_DB.pistol, ITEM_DB.nokia];
+                let loot = {...lootTable[Math.floor(Math.random() * lootTable.length)]};
+                if(loot.id === 'pistol') loot.ammo = 8;
+                droppedItems.push({ x: interactTarget.x, y: interactTarget.y + 20, item: loot });
+            } 
+            else if (interactType === 'item') {
+                if (player.inventory.length < INVENTORY_SIZE) {
+                    player.inventory.push(interactTarget.item);
+                    droppedItems.splice(interactTarget.index, 1);
+                    updateInventoryUI();
+                }
+            }
+            else if (interactType === 'stash') {
+                // Recuperar todo lo posible
+                let s = deathStashes[interactTarget.index];
+                while (s.items.length > 0 && player.inventory.length < INVENTORY_SIZE) {
+                    player.inventory.push(s.items.pop());
+                }
+                if (s.items.length === 0) {
+                    deathStashes.splice(interactTarget.index, 1);
+                }
+                updateInventoryUI();
+            }
+        }
+        lastE = keys.e;
+
+        // Actualizar Balas
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.x += b.vx; b.y += b.vy; b.life--;
+            
+            // Colision con paredes
+            let hitWall = false;
+            buildings.forEach(bd => bd.walls.forEach(w => {
+                if (circleRectCollide(b.x, b.y, 3, w.x, w.y, w.w, w.h)) hitWall = true;
+            }));
+
+            // Colision con zombis
+            let hitZombie = false;
+            if (!hitWall) {
+                for (let z of zombies) {
+                    if (getDistance(b.x, b.y, z.x, z.y) < z.radius + 5) {
+                        z.takeDamage(1, true); // bullet damage
+                        hitZombie = true; break;
+                    }
+                }
+            }
+
+            if (b.life <= 0 || hitWall || hitZombie) {
+                bullets.splice(i, 1);
+            }
+        }
+
+        // Actualizar Zombis
+        for (let i = zombies.length - 1; i >= 0; i--) {
+            let z = zombies[i];
+            if (z.hp <= 0) {
+                zombies.splice(i, 1);
+                continue;
+            }
+
+            let distToPlayer = getDistance(z.x, z.y, player.x, player.y);
+            let hasLOS = distToPlayer < z.viewDist && hasLineOfSight(z.x, z.y, player.x, player.y);
+
+            if (hasLOS) {
+                z.state = 'chasing';
+                z.targetX = player.x; z.targetY = player.y;
+            } else {
+                if (z.state === 'chasing') {
+                    // Ir a la ultima posicion conocida y luego deambular
+                    if (getDistance(z.x, z.y, z.targetX, z.targetY) < 10) z.state = 'wandering';
+                }
+            }
+
+            if (z.state === 'wandering') {
+                if (gameTime > z.wanderTimer) {
+                    z.targetX = z.x + (Math.random() - 0.5) * 200;
+                    z.targetY = z.y + (Math.random() - 0.5) * 200;
+                    z.wanderTimer = gameTime + 100 + Math.random() * 200;
+                }
+            }
+
+            // Mover zombi
+            let zdX = z.targetX - z.x;
+            let zdY = z.targetY - z.y;
+            let zLen = Math.hypot(zdX, zdY);
+            if (zLen > 2) {
+                zdX /= zLen; zdY /= zLen;
+                
+                z.x += zdX * z.speed;
+                // Colision de zombi con paredes (simple revertir)
+                buildings.forEach(b => b.walls.forEach(w => {
+                    if(circleRectCollide(z.x, z.y, z.radius, w.x, w.y, w.w, w.h)) z.x -= zdX * z.speed;
+                }));
+                
+                z.y += zdY * z.speed;
+                buildings.forEach(b => b.walls.forEach(w => {
+                    if(circleRectCollide(z.x, z.y, z.radius, w.x, w.y, w.w, w.h)) z.y -= zdY * z.speed;
+                }));
+            }
+
+            // Ataque zombi
+            if (distToPlayer < z.radius + player.radius + 5 && Date.now() - z.lastAttack > 1000) {
+                z.lastAttack = Date.now();
+                player.hp -= z.dmg;
+                updateHealthUI();
+                
+                // Efecto de daño
+                document.body.style.boxShadow = "inset 0 0 100px rgba(255,0,0,0.8)";
+                setTimeout(() => document.body.style.boxShadow = "none", 200);
+
+                if (player.hp <= 0) die();
+            }
+        }
+
+        // Tumbas expiración (120 seg = 120000 ms)
+        let now = Date.now();
+        for (let i = deathStashes.length - 1; i >= 0; i--) {
+            if (now > deathStashes[i].expire) {
+                deathStashes.splice(i, 1);
+            }
+        }
+
+        // Sangre expiracion
+        for (let i = bloodStains.length - 1; i >= 0; i--) {
+            bloodStains[i].life--;
+            if (bloodStains[i].life <= 0) bloodStains.splice(i, 1);
+        }
+
+        updateUI();
+    }
+
+    function die() {
+        gameState = 'dead';
+        if (player.inventory.length > 0) {
+            deathStashes.push({
+                x: player.x, y: player.y,
+                items: [...player.inventory],
+                expire: Date.now() + 120000 // 2 minutos
+            });
+        }
+        player.inventory = [];
+        updateInventoryUI();
+        document.getElementById('death-screen').classList.remove('hidden');
+        document.getElementById('phone-ui').classList.add('hidden');
+    }
+
+    window.respawn = function() {
+        player.hp = MAX_HEALTH;
+        player.x = WORLD_SIZE / 2 + (Math.random() * 200 - 100);
+        player.y = WORLD_SIZE / 2 + (Math.random() * 200 - 100);
+        player.inventory = []; // Reaparece sin nada, las cosas estan en la tumba
+        updateHealthUI();
+        updateInventoryUI();
+        document.getElementById('death-screen').classList.add('hidden');
+        gameState = 'playing';
+    }
+
+    // --- Dibujado (Render) ---
+    function draw() {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(-camera.x, -camera.y);
+
+        // Grid / Suelo
+        ctx.strokeStyle = '#2a2a2a';
+        ctx.lineWidth = 2;
+        let startX = Math.floor(camera.x / 100) * 100;
+        let startY = Math.floor(camera.y / 100) * 100;
+        for (let i = startX; i < camera.x + canvas.width; i += 100) {
+            ctx.beginPath(); ctx.moveTo(i, camera.y); ctx.lineTo(i, camera.y + canvas.height); ctx.stroke();
+        }
+        for (let i = startY; i < camera.y + canvas.height; i += 100) {
+            ctx.beginPath(); ctx.moveTo(camera.x, i); ctx.lineTo(camera.x + canvas.width, i); ctx.stroke();
+        }
+
+        // Limites mundo
+        ctx.strokeStyle = '#f00'; ctx.lineWidth = 5;
+        ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+        // Sangre
+        ctx.fillStyle = 'rgba(139, 0, 0, 0.5)';
+        bloodStains.forEach(b => {
+            ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
+        });
+
+        // Averiguar si el jugador está dentro de un edificio para el techo
+        let playerInsideBuilding = null;
+        buildings.forEach(b => {
+            if (b.contains(player.x, player.y)) playerInsideBuilding = b;
+        });
+
+        // Edificios
+        buildings.forEach(b => b.draw(ctx, b === playerInsideBuilding));
+
+        // Cofres
+        chests.forEach(c => {
+            ctx.fillStyle = c.opened ? '#5c4033' : '#8b4513';
+            ctx.fillRect(c.x-15, c.y-10, 30, 20);
+            if(!c.opened) {
+                ctx.fillStyle = '#ffd700';
+                ctx.fillRect(c.x-3, c.y-2, 6, 4); // Cerradura
+            }
+        });
+
+        // Items tirados
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        droppedItems.forEach(d => {
+            ctx.fillText(d.item.icon, d.x, d.y);
+        });
+
+        // Tumbas (Death stashes)
+        deathStashes.forEach(s => {
+            ctx.fillText('🎒', s.x, s.y);
+            // Barra de tiempo
+            let timeLeft = (s.expire - Date.now()) / 120000;
+            ctx.fillStyle = 'red';
+            ctx.fillRect(s.x-15, s.y+15, 30*timeLeft, 4);
+        });
+
+        // Zombis
+        zombies.forEach(z => {
+            // Solo dibujar si estan afuera o si estan en el mismo edificio que el jugador
+            let zInside = buildings.find(b => b.contains(z.x, z.y));
+            if (zInside === playerInsideBuilding || !zInside || playerInsideBuilding) {
+                ctx.fillStyle = z.color;
+                ctx.beginPath(); ctx.arc(z.x, z.y, z.radius, 0, Math.PI*2); ctx.fill();
+                // Barra de vida zombi
+                ctx.fillStyle = 'black'; ctx.fillRect(z.x-10, z.y-z.radius-8, 20, 4);
+                ctx.fillStyle = 'red'; ctx.fillRect(z.x-10, z.y-z.radius-8, 20 * (z.hp/z.maxHp), 4);
+            }
+        });
+
+        // Balas
+        ctx.fillStyle = '#ffcc00';
+        bullets.forEach(b => {
+            ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI*2); ctx.fill();
+        });
+
+        // Jugador
+        ctx.fillStyle = player.color;
+        ctx.beginPath(); ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2); ctx.fill();
+        
+        // Dirección jugador
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(player.x, player.y);
+        ctx.lineTo(player.x + player.facingX * 20, player.y + player.facingY * 20);
+        ctx.stroke();
+
+        // Arma equipada visual
+        let eq = player.inventory[player.equippedIndex];
+        if (eq) {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            let angle = Math.atan2(player.facingY, player.facingX);
+            ctx.rotate(angle);
+            ctx.font = '16px Arial';
+            // Animacion ataque
+            let atkOffset = 0;
+            if (Date.now() - player.lastAttack < 100 && eq.type === 'melee') atkOffset = 15;
+            ctx.fillText(eq.icon, 15 + atkOffset, 5);
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+
+    // --- UI ---
+    function updateHealthUI() {
+        const hc = document.getElementById('health-container');
+        hc.innerHTML = '';
+        for(let i=0; i<MAX_HEALTH; i++) {
+            let heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.innerText = i < player.hp ? '❤️' : '🖤';
+            hc.appendChild(heart);
+        }
+    }
+
+    function updateInventoryUI() {
+        const inv = document.getElementById('inventory-container');
+        inv.innerHTML = '';
+        for(let i=0; i<INVENTORY_SIZE; i++) {
+            let slot = document.createElement('div');
+            slot.className = 'slot' + (i === player.equippedIndex ? ' active' : '');
+            slot.onclick = () => { player.equippedIndex = i; updateInventoryUI(); };
+            
+            let item = player.inventory[i];
+            if (item) {
+                slot.innerHTML = `<div class="slot-icon">${item.icon}</div>`;
+                if (item.type === 'ranged') {
+                    slot.innerHTML += `<div class="slot-ammo">${item.ammo}</div>`;
+                }
+            }
+            inv.appendChild(slot);
+        }
+    }
+
+    function updateUI() {
+        document.getElementById('progress-fill').style.width = progress + '%';
+        
+        // Si tiene telefono equipado o presionó C, actualizar hora en el telefono
+        let now = new Date();
+        document.querySelector('#phone-topbar span').innerText = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    // --- Ciclo Principal ---
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    // Iniciar
+    initMap();
+    updateHealthUI();
+    updateInventoryUI();
+    loop();
+
+</script>
+</body>
+</html>
